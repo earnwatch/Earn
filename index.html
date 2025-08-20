@@ -1,0 +1,2761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad watch Rewards</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter (for body) and Montserrat (for headings) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Three.js for 3D Coin Rain -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* Custom Keyframes for Animations */
+        @keyframes fade-in-out-right {
+          0% { opacity: 0; transform: translateX(100%); }
+          10% { opacity: 1; transform: translateX(0); }
+          90% { opacity: 1; transform: translateX(0); }
+          100% { opacity: 0; transform: translateX(100%); }
+        }
+
+        @keyframes fade-in-out-left {
+          0% { opacity: 0; transform: translateX(-100%); }
+          10% { opacity: 1; transform: translateX(0); }
+          90% { opacity: 1; transform: translateX(0); }
+          100% { opacity: 0; transform: translateX(-100%); }
+        }
+
+        @keyframes bg-pulse {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        @keyframes segment-highlight {
+            0% { box-shadow: 0 0 0px rgba(255,255,255,0); }
+            50% { box-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(255,255,255,0.5); }
+            100% { box-shadow: 0 0 0px rgba(255,255,255,0); }
+        }
+
+        .animate-fade-in-out-right {
+          animation: fade-in-out-right 5s ease-in-out forwards;
+        }
+
+        .animate-fade-in-out-left {
+          animation: fade-in-out-left 6s ease-in-out forwards;
+        }
+
+        .animate-bg-pulse {
+          background: linear-gradient(-45deg, #1f2937, #374151, #111827, #4b5563);
+          background-size: 400% 400%;
+          animation: bg-pulse 15s ease infinite;
+        }
+
+        .animate-segment-highlight {
+            animation: segment-highlight 1.5s ease-out forwards;
+        }
+
+        /* Ensure full height and proper font application */
+        body {
+            font-family: 'Inter', sans-serif; /* Default body font */
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            overflow-x: hidden; /* Prevent horizontal scroll due to animations */
+        }
+        #app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 2.5rem; /* py-10 */
+            padding-bottom: 2.5rem; /* py-10 */
+            position: relative;
+            z-index: 1; /* Ensure UI is above background canvas */
+        }
+        /* Custom font for headings */
+        .font-heading {
+            font-family: 'Montserrat', sans-serif;
+            letter-spacing: 0.05em; /* Slightly increased letter spacing */
+            text-shadow: 0 0 5px rgba(0,255,255,0.3), 0 0 10px rgba(0,255,255,0.2); /* Subtle glow */
+        }
+        .prose { /* Basic prose styling for privacy page */
+            max-width: 80ch;
+        }
+        .prose h3 {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            margin-top: 1.5rem; /* mt-6 */
+            margin-bottom: 0.75rem; /* mb-3 */
+        }
+        .prose p {
+            margin-bottom: 1rem;
+        }
+
+        /* Custom Alert Popup Styles */
+        .alert-popup-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .alert-popup-content {
+            background-color: #1f2937; /* gray-800 */
+            padding: 2rem;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4); /* shadow-2xl */
+            text-align: center;
+            max-width: 28rem; /* max-w-md */
+            width: 90%;
+            border: 1px solid;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .alert-popup-content.info { border-color: #3b82f6; /* blue-500 */ }
+        .alert-popup-content.success { border-color: #22c55e; /* green-500 */ }
+        .alert-popup-content.warning { border-color: #f59e0b; /* amber-500 */ }
+        .alert-popup-content.error { border-color: #ef4444; /* red-500 */ }
+
+        .alert-popup-title {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            margin-bottom: 1rem;
+            color: #d1d5db; /* gray-200 */
+        }
+        .alert-popup-message {
+            font-size: 1.125rem; /* text-lg */
+            color: #e5e7eb; /* gray-100 */
+            margin-bottom: 1.5rem;
+        }
+        .alert-popup-button {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            font-weight: 700; /* font-bold */
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: all 0.2s ease-in-out;
+            border: none;
+            cursor: pointer;
+        }
+        .alert-popup-button:hover {
+            background-color: #2563eb; /* blue-600 */
+            transform: scale(1.05);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Spin Wheel Specific Styles */
+        .spin-wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.3);
+            border: 5px solid #00BCD4;
+        }
+
+        .spin-wheel {
+            width: 100%;
+            height: 100%;
+            transition: transform 4s cubic-bezier(0.25, 0.1, 0.25, 1); /* Slower, smoother spin */
+            will-change: transform;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -20px; /* Position above the wheel */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 30px solid #FF4136; /* Red pointer */
+            z-index: 10;
+        }
+
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background-color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #333;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.2rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: 3px solid #607D8B;
+        }
+
+        .wheel-segment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            clip-path: polygon(50% 50%, 100% 0%, 100% 100%); /* Example for a segment, adjusted by rotation */
+            transform-origin: 50% 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1); /* Subtle lines between segments */
+        }
+        .segment-text {
+            position: absolute;
+            font-size: 18px; /* Increased font size for better visibility */
+            font-weight: 800; /* Bolder font weight */
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8); /* Stronger text shadow */
+            transform-origin: 0% 0%; /* Adjusted for rotation */
+        }
+
+        /* General UI Enhancements */
+        .shadow-custom-blue {
+            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.6), 0 6px 12px -3px rgba(59, 130, 246, 0.4);
+        }
+        .shadow-custom-purple {
+            box-shadow: 0 10px 20px -5px rgba(168, 85, 247, 0.6), 0 6px 12px -3px rgba(168, 85, 247, 0.4);
+        }
+        .shadow-custom-green {
+            box-shadow: 0 10px 20px -5px rgba(34, 197, 94, 0.6), 0 6px 12px -3px rgba(34, 197, 94, 0.4);
+        }
+        .shadow-custom-yellow {
+            box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.6), 0 6px 12px -3px rgba(245, 158, 11, 0.4);
+        }
+        .shadow-custom-red {
+            box-shadow: 0 10px 20px -5px rgba(239, 68, 68, 0.6), 0 6px 12px -3px rgba(239, 68, 68, 0.4);
+        }
+        .shadow-custom-gray {
+            box-shadow: 0 10px 20px -5px rgba(107, 114, 128, 0.6), 0 6px 12px -3px rgba(107, 114, 128, 0.4);
+        }
+
+        /* For buttons to have a subtle 3D press effect */
+        button:not([disabled]):active {
+            transform: scale(0.98) translateY(1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* Canvas for live background */
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background-color: transparent; /* Ensure it's transparent to show actual body background */
+        }
+
+        /* Navigation Button Specific Styles */
+        nav button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem; /* Space between icon and text */
+            padding: 0.75rem 1rem; /* Adjust padding for icons */
+            border-radius: 0.6rem; /* Slightly more rounded */
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent; /* Default transparent border */
+        }
+        nav button.active {
+            background-color: #2563eb; /* blue-600 */
+            color: white;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4); /* Stronger shadow for active */
+            border-color: #3b82f6; /* blue-500 */
+        }
+        nav button:not(.active):hover {
+            background-color: #374151; /* gray-700 */
+            color: white;
+            transform: translateY(-2px); /* Slight lift on hover */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        /* Custom Popup Styles with 3D effect */
+        .custom-popup-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .custom-popup-content {
+            background-color: #1f2937; /* gray-800 */
+            padding: 2.5rem; /* Increased padding */
+            border-radius: 1rem; /* More rounded */
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.6), /* Deeper main shadow */
+                0 10px 20px -5px rgba(0, 0, 0, 0.4), /* Secondary shadow */
+                inset 0 0 15px rgba(255, 255, 255, 0.05); /* Inner light for depth */
+            text-align: center;
+            max-width: 32rem; /* Wider */
+            width: 90%;
+            border: 2px solid; /* Thicker border */
+            animation: fadeIn 0.4s ease-out; /* Slightly slower fade in */
+            position: relative; /* For icon positioning */
+            overflow: hidden; /* Ensure icon doesn't overflow */
+        }
+
+        .custom-popup-content.blue-border {
+            border-color: #3b82f6; /* blue-500 */
+            background: linear-gradient(145deg, #2a3544, #1a222c); /* Subtle gradient */
+        }
+        .custom-popup-content.yellow-border {
+            border-color: #f59e0b; /* amber-500 */
+            background: linear-gradient(145deg, #2a3544, #1a222c);
+        }
+        .custom-popup-content.green-border {
+            border-color: #22c55e; /* green-500 */
+            background: linear-gradient(145deg, #2a3544, #1a222c);
+        }
+
+        .custom-popup-icon {
+            font-size: 4rem; /* Larger icon */
+            margin-bottom: 1.5rem;
+            color: inherit; /* Inherit color from parent for thematic consistency */
+            text-shadow: 0 0 10px rgba(255,255,255,0.3); /* Icon glow */
+        }
+
+        .custom-popup-content.blue-border .custom-popup-icon { color: #3b82f6; }
+        .custom-popup-content.yellow-border .custom-popup-icon { color: #f59e0b; }
+        .custom-popup-content.green-border .custom-popup-icon { color: #22c55e; }
+
+        .custom-popup-title {
+            font-size: 2.25rem; /* text-4xl */
+            font-weight: 800; /* font-extrabold */
+            margin-bottom: 1.25rem;
+            color: #e5e7eb; /* gray-100 */
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5); /* Text shadow for depth */
+        }
+        .custom-popup-message {
+            font-size: 1.25rem; /* text-xl */
+            color: #d1d5db; /* gray-200 */
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .custom-popup-button {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            font-weight: 700; /* font-bold */
+            padding: 0.9rem 2rem; /* Larger buttons */
+            border-radius: 0.6rem; /* More rounded */
+            transition: all 0.3s ease-in-out;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* Button shadow */
+        }
+        .custom-popup-button:hover {
+            background-color: #2563eb; /* blue-600 */
+            transform: translateY(-2px) scale(1.02); /* Slight lift and scale */
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+        .custom-popup-button.green {
+            background-color: #22c55e;
+        }
+        .custom-popup-button.green:hover {
+            background-color: #16a34a;
+        }
+        .custom-popup-button.yellow {
+            background-color: #f59e0b;
+        }
+        .custom-popup-button.yellow:hover {
+            background-color: #d97706;
+        }
+
+        /* Coin Rain Canvas */
+        #coin-rain-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50; /* Higher than app-container (z-index: 1) */
+            pointer-events: none; /* Allows clicks to pass through */
+            background: transparent;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Live Background Canvas -->
+    <canvas id="background-canvas"></canvas>
+    <!-- Coin Rain Canvas (for 3D effects) -->
+    <canvas id="coin-rain-canvas" class="fixed inset-0 z-50 pointer-events-none hidden"></canvas>
+
+    <div id="app-container" class="bg-gradient-to-br from-gray-950 to-gray-800">
+        <!-- Animated Background Overlay (kept for pulsating effect) -->
+        <div class="absolute inset-0 z-0 opacity-20 animate-bg-pulse"></div>
+
+        <!-- Header / Navigation -->
+        <header id="app-header" class="w-full max-w-4xl bg-gray-900 p-6 rounded-xl shadow-2xl mb-8 flex flex-col sm:flex-row justify-between items-center border border-gray-700 z-10">
+            <h1 class="text-4xl font-extrabold text-blue-400 mb-4 sm:mb-0 font-heading">Ad watch Rewards</h1>
+            <nav>
+                <ul class="flex flex-wrap justify-center gap-4">
+                    <li>
+                        <button id="nav-dashboard" class="font-semibold font-heading">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Dashboard</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-watch-ads" class="font-semibold font-heading">
+                            <i class="fas fa-play-circle"></i>
+                            <span>Watch Ads</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-spin-roll" class="font-semibold font-heading">
+                            <i class="fas fa-spinner"></i>
+                            <span>Spin & Win</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-tasks" class="font-semibold font-heading">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>Tasks</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-referral" class="font-semibold font-heading">
+                            <i class="fas fa-share-alt"></i>
+                            <span>Referral</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-withdrawal" class="font-semibold font-heading">
+                            <i class="fas fa-wallet"></i>
+                            <span>Withdrawal</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-privacy" class="font-semibold font-heading">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Ad Privacy Policy</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-logout" class="font-semibold font-heading bg-red-600 hover:bg-red-700 text-white">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="w-full max-w-4xl px-4 z-10">
+            <div id="loading-message" class="text-center text-blue-400 text-xl font-semibold mt-10">Loading application...</div>
+            <!-- Page content will be rendered here by JavaScript -->
+        </main>
+
+        <!-- Custom Alert Popup (replaces browser alerts) -->
+        <div id="custom-alert-popup" class="alert-popup-container hidden">
+            <div id="custom-alert-content" class="alert-popup-content">
+                <h3 id="custom-alert-title" class="alert-popup-title"></h3>
+                <p id="custom-alert-message" class="alert-popup-message"></p>
+                <button id="custom-alert-close-button" class="alert-popup-button font-heading">OK</button>
+            </div>
+        </div>
+
+        <!-- Ad Completion Popup -->
+        <div id="ad-completion-popup" class="custom-popup-container hidden">
+            <div class="custom-popup-content blue-border">
+                <i class="fas fa-check-circle custom-popup-icon"></i>
+                <h3 class="custom-popup-title font-heading">Congratulations!</h3>
+                <p class="custom-popup-message">
+                    You have watched all 30 ads for this session.
+                    <br />Please wait <span class="font-semibold text-red-500"><span id="cooldown-hours">0</span>h <span id="cooldown-minutes">0</span>m <span id="cooldown-seconds">0</span>s</span> before watching more ads.
+                </p>
+                <button id="close-ad-completion-popup" class="custom-popup-button blue font-heading">
+                    Got It!
+                </button>
+            </div>
+        </div>
+
+        <!-- Task Completion Popup -->
+        <div id="task-completion-popup" class="custom-popup-container hidden">
+            <div class="custom-popup-content yellow-border">
+                <i class="fas fa-trophy custom-popup-icon"></i>
+                <h3 class="custom-popup-title font-heading">All Tasks Completed!</h3>
+                <p class="custom-popup-message">
+                    You have completed all available tasks for this session.
+                    <br />Please wait <span class="font-semibold text-red-500"><span id="task-cooldown-popup-hours">0</span>h <span id="task-cooldown-popup-minutes">0</span>m <span id="task-cooldown-popup-seconds">0</span>s</span> before new tasks are available.
+                </p>
+                <button id="close-task-completion-popup" class="custom-popup-button yellow font-heading">
+                    Got It!
+                </button>
+            </div>
+        </div>
+
+        <!-- Withdrawal Confirmation Popup -->
+        <div id="withdrawal-confirmation-popup" class="custom-popup-container hidden">
+            <div class="custom-popup-content green-border">
+                <i class="fas fa-dollar-sign custom-popup-icon"></i>
+                <h3 class="custom-popup-title font-heading">Withdrawal Submitted!</h3>
+                <p class="custom-popup-message">
+                    Your request to withdraw <span class="font-semibold text-green-500" id="withdrawal-amount-display"></span> via <span class="font-semibold text-green-500" id="withdrawal-method-display"></span> has been successfully submitted.
+                    <br/>It will be automatically sent to your wallet/account.
+                </p>
+                <p class="text-gray-400 text-md">
+                    We will process your request shortly.
+                </p>
+                <button id="close-withdrawal-popup" class="custom-popup-button green font-heading">
+                    Okay
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Activity Notification (bottom right) -->
+        <div id="live-notification-right" class="hidden fixed bottom-4 right-4 bg-blue-700 text-white p-4 rounded-lg shadow-xl z-50 max-w-xs border border-blue-500">
+            <p class="font-semibold text-sm" id="live-notification-right-message"></p>
+        </div>
+
+        <!-- Live Withdrawal Notification (top left) -->
+        <div id="live-notification-left" class="hidden fixed top-4 left-4 bg-purple-700 text-white p-4 rounded-lg shadow-xl z-50 max-w-xs border border-purple-500">
+            <p class="font-semibold text-sm" id="live-notification-left-message"></p>
+        </div>
+
+        <!-- Referral Claim Popup -->
+        <div id="referral-claim-popup" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div class="bg-gray-900 p-8 rounded-xl shadow-2xl text-center max-w-md w-full border border-green-600 text-gray-100">
+                <h3 class="text-3xl font-bold text-green-400 mb-4 font-heading">Invitation Received!</h3>
+                <p class="text-gray-300 text-lg mb-6">
+                    You've been invited by <span class="font-semibold text-yellow-400" id="invited-by-code"></span>!
+                    Create an account or log in to claim your <span class="font-bold text-green-500">$5.00</span> welcome bonus.
+                </p>
+                <button id="claim-invitation-button" class="mt-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 border border-green-500 font-heading">
+                    Claim My Bonus
+                </button>
+                <button id="close-referral-claim-popup" class="mt-4 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 border border-gray-500 font-heading">
+                    No Thanks
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+      
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, onSnapshot, increment, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase instances
+        let app;
+        let db;
+        let auth;
+        let userId = null; // Current authenticated user ID
+        let isAuthReady = false; // Flag to indicate if auth state has been checked
+
+        // Global state variables (now backed by Firestore)
+        let balance = 0;
+        let displayedBalance = 0; // For smooth counting animation
+        let adsWatched = 0;
+        let cooldownEndTime = 0; // For ad watching
+        let spinCooldownEndTime = 0; // For spin wheel
+        let tasksCompleted = 0; // New: Tasks completed in current session
+        let taskCooldownEndTime = 0; // New: Cooldown for tasks
+        let referralCode = ''; // User's unique referral code
+        let totalReferrals = 0; // Count of successful referrals
+        let referralEarnings = 0; // Total earnings from referrals (claimed)
+        let unclaimedReferralBalance = 0; // New: Earnings from referrals not yet claimed
+        let referralCooldownEndTime = 0; // Cooldown for simulating referrals (now for referrer reward)
+
+        // New withdrawal state
+        let savedWithdrawalMethod = null;
+        let savedWithdrawalAddress = null;
+        let lastAutomaticWithdrawalTime = 0;
+        const MIN_WITHDRAWAL_AMOUNT = 500; // Minimum balance for automatic withdrawal
+        const AUTO_WITHDRAWAL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+        let currentPage = 'auth'; // Start on auth page
+        let selectedCurrency = 'USD';
+        let withdrawalDetails = null; // For the withdrawal confirmation popup
+
+        let activeReferralCode = null; // Stores the referral code from the URL
+        
+
+        // IMPORTANT: Replace with your actual GitHub Pages URL or custom domain URL
+        const BASE_APP_URL = "https://your-username.github.io/your-repo-name/"; // Example: "https://myusername.github.io/my-ad-app/"
+        // IMPORTANT: Replace with the URL of your deployed Firebase Cloud Function for referral processing
+        // Example: "https://us-central1-your-project-id.cloudfunctions.net/processReferral"
+        // YOU MUST DEPLOY A CLOUD FUNCTION FOR THE REFERRAL PROGRAM TO WORK SECURELY.
+        const FIREBASE_CLOUD_FUNCTION_REFERRAL_URL = "YOUR_FIREBASE_CLOUD_FUNCTION_URL/processReferral";
+
+
+        //Nadeyy 
+        const adLinks = [
+            "https://www.profitableratecpm.com/qtwnkven0?key=a8137da23e1356f2c387b12acf4ccca5",
+            "https://www.profitableratecpm.com/v30v9iyyx?key=d7ca0b45aee9f9b8402f8dce202ab1ff",
+            "https://www.profitableratecpm.com/mayqsuihvp?key=be3f19c9d421f9c672445bc74a819d82",
+            "https://www.profitableratecpm.com/qtwnkven0?key=a8137da23e1356f2c387b12acf4ccca5",
+            "https://singingfiles.com/show.php?l=0&u=1556135&id=63432",
+            "https://otieu.com/4/9677163",
+            "https://otieu.com/4/9677164",
+            "https://www.profitableratecpm.com/qtwnkven0?key=a8137da23e1356f2c387b12acf4ccca5",
+            "https://www.profitableratecpm.com/v30v9iyyx?key=d7ca0b45aee9f9b8402f8dce202ab1ff",
+            "https://www.profitableratecpm.com/mayqsuihvp?key=be3f19c9d421f9c672445bc74a819d82",
+            "https://www.profitableratecpm.com/qtwnkven0?key=a8137da23e1356f2c387b12acf4ccca5",
+            "https://singingfiles.com/show.php?l=0&u=1556135&id=63432",
+            "https://otieu.com/4/9677163",
+            "https://otieu.com/4/9677164",
+            "https://www.profitableratecpm.com/qtwnkven0?key=a8137da23e1356f2c387b12acf4ccca5",
+            "https://www.profitableratecpm.com/v30v9iyyx?key=d7ca0b45aee9f9b8402f8dce202ab1ff",
+            "https://www.profitableratecpm.com/mayqsuihvp?key=be3f19c9d421f9c672445bc74a819d82",
+            "https://www.profitableratecpm.com/qtwnkven0?key=a8137da23e1356f2c387b12acf4ccca5",
+            "https://singingfiles.com/show.php?l=0&u=1556135&id=63432",
+            "https://otieu.com/4/9677163",
+            "https://otieu.com/4/9677164",
+             "https://www.profitableratecpm.com/pz8jf02j?key=4764de412cc1f93516945aa64a0fa4a4",
+            "https://otieu.com/4/9677164",
+             "https://otieu.com/4/9677163",
+            "https://otieu.com/4/9677164",
+             "https://www.profitableratecpm.com/pz8jf02j?key=4764de412cc1f93516945aa64a0fa4a4",
+            "https://otieu.com/4/9677164",
+            
+            
+        
+        ];
+
+        // Ad image URLs (more realistic examples) - Expanded for more variety
+        const adImageUrls = [
+            "https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Product
+            "https://images.unsplash.com/photo-1523275370908-1157140027f6?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // E-commerce
+            "https://images.unsplash.com/photo-1542291026-79eddc8727ae?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Shoes
+            "https://images.unsplash.com/photo-1517336714730-49688d16edd3?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Tech
+            "https://images.unsplash.com/photo-1546890981-d2c67d714717?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Food
+            "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Coding/Software
+            "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Data/Analytics
+            "https://images.unsplash.com/photo-1519389950473-47ba0c766d15?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Startup/Team
+            "https://images.unsplash.com/photo-1497215729967-00f27ce949cd?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Office/Work
+            "https://images.unsplash.com/photo-1521737711867-e3b97375253b?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Business meeting
+            "https://images.unsplash.com/photo-1504805572947-34fd4543f0c6?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Laptop/Work
+            "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Conference
+            "https://images.unsplash.com/photo-1505373877845-8c2aace4d819?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Presentation
+            "https://images.unsplash.com/photo-1488590528505-98d2f0dceb8b?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Developer
+            "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Cyber Security
+            "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Network
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Marketing
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // SEO
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Digital Marketing
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Social Media
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Content Creation
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Online Course
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Education
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Finance
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Investment
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Banking
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Real Estate
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Travel
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Health
+            "https://images.unsplash.com/photo-1507207611896-cd44c77e7b6c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"  // Fitness
+        ];
+
+        // Task definitions - now includes adLink
+        const tasks = [
+            { id: 1, title: "Complete a quick survey", description: "Share your opinion on a short market research survey.", adLink: adLinks[0] },
+            { id: 2, title: "Watch a product demo", description: "View a brief demonstration of a new software product.", adLink: adLinks[1] },
+            { id: 3, title: "Install a mobile app", description: "Download and open a specified mobile application.", adLink: adLinks[2] },
+            { id: 4, title: "Sign up for a newsletter", description: "Subscribe to a partner's email newsletter.", adLink: adLinks[3] },
+            { id: 5, title: "Visit a partner website", description: "Browse a specific website for at least 30 seconds.", adLink: adLinks[4] },
+            { id: 6, title: "Follow us on social media", description: "Follow our official page on a popular social platform.", adLink: adLinks[5] },
+            { id: 7, title: "Write a short review", description: "Provide a brief review for a given product or service.", adLink: adLinks[6] },
+            { id: 8, title: "Play a mini-game", description: "Achieve a certain score in a simple browser game.", adLink: adLinks[7] },
+            { id: 9, title: "Complete a captcha challenge", description: "Prove you're not a robot by solving a captcha.", adLink: adLinks[9] }
+        ];
+
+        // Hardcoded exchange rates for demonstration (In a real app, use a crypto API)
+        const exchangeRates = {
+            USD: 1,
+            USDT: 1.00, // Assuming 1 USDT = 1 USD for simplicity
+            ETH: 0.0003, // Example: 1 USD = 0.0003 ETH
+            XRP: 2.0,    // Example: 1 USD = 2.0 XRP
+            BTC: 0.000015 // Example: 1 USD = 0.000015 BTC
+        };
+
+        // --- Firebase Data Operations ---
+        // Use global __app_id if available, otherwise fallback to a default
+        const appId = typeof __app_id !== 'undefined' ? __app_id : "adwatchrewardsapp";
+
+        async function getUserProfile(uid) {
+            const userDocRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+                return userDocSnap.data();
+            }
+            return null;
+        }
+
+        async function createOrUpdateUserProfile(uid, data) {
+            const userDocRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
+            await setDoc(userDocRef, data, { merge: true });
+        }
+
+        async function updateUserData(uid, updates) {
+            const userDocRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
+            await updateDoc(userDocRef, updates);
+        }
+
+        async function addWithdrawalRequest(uid, requestData) {
+            const withdrawalCollectionRef = collection(db, `artifacts/${appId}/users/${uid}/withdrawalRequests`);
+            await addDoc(withdrawalCollectionRef, {
+                ...requestData,
+                timestamp: Date.now(),
+                status: 'pending',
+                userId: uid // Store userId for traceability
+            });
+        }
+
+        // --- Authentication Functions ---
+        async function loginUser(email, password) {
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // The onAuthStateChanged listener will handle the redirection to dashboard
+                showAlert("Success", "Logged in successfully!", "success");
+            } catch (error) {
+                console.error("Login error:", error);
+                showAlert("Login Failed", error.message, "error");
+            }
+        }
+
+        async function createAccount(email, password) {
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const uid = userCredential.user.uid;
+                console.log("Account created:", uid);
+
+                // Initialize user profile in Firestore
+                const newReferralCode = generateReferralCode(uid); // Generate code with UID
+                await createOrUpdateUserProfile(uid, {
+                    balance: 0,
+                    adsWatched: 0,
+                    cooldownEndTime: 0,
+                    spinCooldownEndTime: 0,
+                    tasksCompleted: 0,
+                    taskCooldownEndTime: 0,
+                    referralCode: newReferralCode,
+                    totalReferrals: 0,
+                    referralEarnings: 0, // Claimed earnings
+                    unclaimedReferralBalance: 0, // New: Unclaimed earnings
+                    referredBy: null, // New field to track if this user was referred (set by Cloud Function)
+                    withdrawalMethod: null, // New: Default withdrawal method
+                    withdrawalAddress: null, // New: Default withdrawal address
+                    lastAutomaticWithdrawalTime: 0, // New: Timestamp of last automatic withdrawal
+                    createdAt: Date.now()
+                });
+
+                // Check and apply referral if an active referral code is present
+                if (activeReferralCode) {
+                    await claimReferralBonus(activeReferralCode, uid);
+                    activeReferralCode = null; // Clear after claiming
+                    // Remove ref parameter from URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+
+                // The onAuthStateChanged listener will handle the redirection to dashboard
+                showAlert("Success", "Account created successfully! Redirecting to dashboard...", "success");
+                // Removed renderPage('auth') here to allow onAuthStateChanged to handle redirection
+            } catch (error) {
+                console.error("Account creation error:", error);
+                showAlert("Account Creation Failed", error.message, "error");
+            }
+        }
+
+        async function loginAsGuest() {
+            try {
+                const userCredential = await signInAnonymously(auth);
+                const uid = userCredential.user.uid;
+                console.log("Signed in anonymously:", uid);
+
+                const userProfile = await getUserProfile(uid);
+                if (!userProfile) {
+                     const newReferralCode = generateReferralCode(uid); // Generate code with UID
+                     await createOrUpdateUserProfile(uid, {
+                        balance: 0,
+                        adsWatched: 0,
+                        cooldownEndTime: 0,
+                        spinCooldownEndTime: 0,
+                        tasksCompleted: 0,
+                        taskCooldownEndTime: 0,
+                        referralCode: newReferralCode,
+                        totalReferrals: 0,
+                        referralEarnings: 0,
+                        unclaimedReferralBalance: 0, // New: Unclaimed earnings
+                        referredBy: null, // New field (set by Cloud Function)
+                        withdrawalMethod: null, // New: Default withdrawal method
+                        withdrawalAddress: null, // New: Default withdrawal address
+                        lastAutomaticWithdrawalTime: 0, // New: Timestamp of last automatic withdrawal
+                        createdAt: Date.now()
+                    });
+                     // Check and apply referral if an active referral code is present for new guest
+                    if (activeReferralCode) {
+                        await claimReferralBonus(activeReferralCode, uid);
+                        activeReferralCode = null; // Clear after claiming
+                        // Remove ref parameter from URL
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                } else {
+                    // If existing guest, check if they were already referred.
+                    // If not, and there's an active referral code, apply it.
+                    if (activeReferralCode && !userProfile.referredBy) {
+                        await claimReferralBonus(activeReferralCode, uid);
+                        activeReferralCode = null;
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }
+                // The onAuthStateChanged listener will handle the redirection to dashboard
+                showAlert("Guest Login", "Logged in as guest. Your progress will be saved. Redirecting to dashboard...", "info");
+            } catch (error) {
+                console.error("Anonymous login error:", error);
+                showAlert("Guest Login Failed", error.message, "error");
+            }
+        }
+
+        async function logoutUser() {
+            try {
+                await signOut(auth);
+                showAlert("Logged Out", "You have been logged out.", "info");
+                // Reset state and render auth page
+                balance = 0;
+                displayedBalance = 0; // Reset displayed balance too
+                adsWatched = 0;
+                cooldownEndTime = 0;
+                spinCooldownEndTime = 0;
+                tasksCompleted = 0;
+                taskCooldownEndTime = 0;
+                referralCode = '';
+                totalReferrals = 0;
+                referralEarnings = 0;
+                unclaimedReferralBalance = 0; // Reset unclaimed balance
+                savedWithdrawalMethod = null;
+                savedWithdrawalAddress = null;
+                lastAutomaticWithdrawalTime = 0;
+                userId = null;
+                isAuthReady = false;
+                renderPage('auth');
+            } catch (error) {
+                console.error("Logout error:", error);
+                showAlert("Logout Failed", error.message, "error");
+            }
+        }
+
+        // New: Forgot Password function
+        async function handleForgotPassword(email) {
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showAlert("Password Reset", "If an account with that email exists, a password reset link has been sent to your email.", "success");
+            } catch (error) {
+                console.error("Password reset error:", error);
+                showAlert("Password Reset Failed", error.message, "error");
+            }
+        }
+
+        // Function to generate a unique referral code embedding the UID
+        function generateReferralCode(uid) {
+            // Use a portion of the UID and a random string for uniqueness and traceability
+            return `REF-${uid.substring(0, 8)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        }
+
+        // Function to claim referral bonus (for the NEW user, and trigger Cloud Function for referrer's unclaimed balance)
+        async function claimReferralBonus(referrerCode, newUserId) {
+            const referralBonusAmount = 5.00; // Bonus for the new user
+            const referrerRewardAmount = 30.00; // Reward for the referrer (added to unclaimed by Cloud Function)
+
+            try {
+                const newUserProfile = await getUserProfile(newUserId);
+                if (!newUserProfile) {
+                    console.warn("Attempted to claim referral for non-existent new user profile:", newUserId);
+                    return;
+                }
+                if (newUserProfile.referredBy) {
+                    console.log("User already referred:", newUserId);
+                    return; // Already referred, prevent re-claiming
+                }
+
+                // 1. Reward the new user (referred user) immediately on client-side (safe as it's their own balance)
+                await updateUserData(newUserId, {
+                    balance: increment(parseFloat(referralBonusAmount.toFixed(2))),
+                    // Note: 'referredBy' is now set by the Cloud Function for consistency,
+                    // but could also be set here if you prefer.
+                });
+                showAlert("Bonus Claimed!", `You received a $${referralBonusAmount.toFixed(2)} welcome bonus!`, "success");
+                triggerCoinRain(referralBonusAmount, selectedCurrency); // Trigger coin rain for the new user's bonus
+
+                // 2. Trigger Cloud Function to securely reward the referrer
+                // This is crucial for security as direct client-side updates to other users' profiles are blocked by Firestore rules.
+                try {
+                    // Ensure the user is authenticated before trying to get a token
+                    if (!auth.currentUser) {
+                        throw new Error("User not authenticated to call Cloud Function.");
+                    }
+                    const idToken = await auth.currentUser.getIdToken();
+
+                    const response = await fetch(FIREBASE_CLOUD_FUNCTION_REFERRAL_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${idToken}` // Send auth token for verification in Cloud Function
+                        },
+                        body: JSON.stringify({ referrerCode, newUserId, referrerRewardAmount })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        // Cloud Function successfully processed the referrer reward
+                        console.log("Cloud Function success:", result.message);
+                        // The referrer's balance will be updated by the Cloud Function
+                        // and then synced via onSnapshot. No client-side update for referrer here.
+                    } else {
+                        console.error("Cloud Function error:", result.error);
+                        showAlert("Referral Error", `Could not process referrer reward: ${result.error || 'Unknown error'}`, "error");
+                    }
+                } catch (cfError) {
+                    console.error("Error calling Cloud Function:", cfError);
+                    showAlert("Referral Error", "Failed to communicate with referral server. Please ensure the Cloud Function is deployed and FIREBASE_CLOUD_FUNCTION_REFERRAL_URL is correct.", "error");
+                }
+
+            } catch (error) {
+                console.error("Error claiming referral bonus (client-side):", error);
+                showAlert("Referral Failed", "Could not claim referral bonus. Please try again.", "error");
+            }
+        }
+
+        // New: Function to claim unclaimed referral earnings (by the referrer)
+        async function handleClaimReferralEarnings() {
+            if (!userId) {
+                showAlert("Authentication Required", "Please log in to claim earnings.", "error");
+                return;
+            }
+            if (unclaimedReferralBalance <= 0) {
+                showAlert("No Earnings", "You have no unclaimed referral earnings to claim.", "info");
+                return;
+            }
+
+            const amountToClaim = unclaimedReferralBalance;
+
+            try {
+                // This update is safe client-side because the user is claiming their *own* balance.
+                await updateUserData(userId, {
+                    balance: increment(parseFloat(amountToClaim.toFixed(2))),
+                    referralEarnings: increment(parseFloat(amountToClaim.toFixed(2))), // Add to total claimed earnings
+                    unclaimedReferralBalance: 0 // Reset unclaimed balance
+                });
+                showAlert("Earnings Claimed!", `Successfully claimed $${amountToClaim.toFixed(2)} from your referral balance!`, "success");
+                triggerCoinRain(amountToClaim, selectedCurrency); // Trigger coin rain on successful earning
+                renderPage('referral'); // Re-render page to update display
+            } catch (error) {
+                console.error("Error claiming referral earnings:", error);
+                showAlert("Claim Failed", "Could not claim referral earnings. Please try again.", "error");
+            }
+        }
+
+        // --- Custom Alert Popup Function ---
+        function showAlert(title, message, type = 'info') {
+            const alertPopup = document.getElementById('custom-alert-popup');
+            const alertContent = document.getElementById('custom-alert-content');
+            const alertTitle = document.getElementById('custom-alert-title');
+            const alertMessage = document.getElementById('custom-alert-message');
+            const alertCloseButton = document.getElementById('custom-alert-close-button');
+
+            alertTitle.textContent = title;
+            alertMessage.textContent = message;
+
+            // Reset and set type-specific border color
+            alertContent.classList.remove('info', 'success', 'warning', 'error');
+            alertContent.classList.add(type);
+
+            alertPopup.classList.remove('hidden');
+
+            alertCloseButton.onclick = () => {
+                alertPopup.classList.add('hidden');
+            };
+        }
+
+
+        // --- Cooldown Timer Logic ---
+        function calculateTimeLeft(endTime) {
+            const now = Date.now();
+            const difference = endTime - now;
+            if (difference <= 0) {
+                return { hours: 0, minutes: 0, seconds: 0, isActive: false };
+            }
+
+            const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((difference / 1000 / 60) % 60);
+            const seconds = Math.floor((difference / 1000) % 60);
+
+            return { hours, minutes, seconds, isActive: true };
+        }
+
+        function updateCooldownDisplay() {
+            if (!isAuthReady) return; // Only update if auth state is ready
+
+            const adTimeLeft = calculateTimeLeft(cooldownEndTime);
+            const hoursElem = document.getElementById('cooldown-hours');
+            const minutesElem = document.getElementById('cooldown-minutes');
+            const secondsElem = document.getElementById('cooldown-seconds');
+
+            if (hoursElem) hoursElem.textContent = adTimeLeft.hours;
+            if (minutesElem) minutesElem.textContent = adTimeLeft.minutes;
+            if (secondsElem) secondsElem.textContent = adTimeLeft.seconds;
+
+            // Update dashboard ad cooldown display
+            const dashboardHoursElem = document.getElementById('cooldown-dashboard-hours');
+            const dashboardMinutesElem = document.getElementById('cooldown-dashboard-minutes');
+            const dashboardSecondsElem = document.getElementById('cooldown-dashboard-seconds');
+            if (dashboardHoursElem) dashboardHoursElem.textContent = adTimeLeft.hours;
+            if (dashboardMinutesElem) dashboardMinutesElem.textContent = adTimeLeft.minutes;
+            if (dashboardSecondsElem) dashboardSecondsElem.textContent = adTimeLeft.seconds;
+
+            if (!adTimeLeft.isActive && cooldownEndTime > 0) {
+                // Reset adsWatched and cooldownEndTime in Firestore
+                updateUserData(userId, { adsWatched: 0, cooldownEndTime: 0 });
+            }
+
+            // Update spin cooldown display
+            const spinTimeLeft = calculateTimeLeft(spinCooldownEndTime);
+            const spinHoursElem = document.getElementById('spin-cooldown-hours');
+            const spinMinutesElem = document.getElementById('spin-cooldown-minutes');
+            const spinSecondsElem = document.getElementById('spin-cooldown-seconds');
+
+            if (spinHoursElem) spinHoursElem.textContent = spinTimeLeft.hours;
+            if (spinMinutesElem) spinMinutesElem.textContent = spinTimeLeft.minutes;
+            if (spinSecondsElem) spinSecondsElem.textContent = spinTimeLeft.seconds;
+
+            const spinCooldownMessage = document.getElementById('spin-cooldown-message');
+            const spinButton = document.getElementById('spin-button');
+
+            if (spinCooldownMessage && spinButton) {
+                if (spinTimeLeft.isActive) {
+                    spinCooldownMessage.classList.remove('hidden');
+                    spinButton.disabled = true;
+                } else {
+                    spinCooldownMessage.classList.add('hidden');
+                    spinButton.disabled = false;
+                    if (spinCooldownEndTime > 0) { // Only reset if it was active and just ended
+                        updateUserData(userId, { spinCooldownEndTime: 0 });
+                    }
+                }
+            }
+
+            // Update task cooldown display
+            const taskTimeLeft = calculateTimeLeft(taskCooldownEndTime);
+            const taskCooldownPopupHours = document.getElementById('task-cooldown-popup-hours');
+            const taskCooldownPopupMinutes = document.getElementById('task-cooldown-popup-minutes');
+            const taskCooldownPopupSeconds = document.getElementById('task-cooldown-popup-seconds');
+            
+            if (taskCooldownPopupHours) taskCooldownPopupHours.textContent = taskTimeLeft.hours;
+            if (taskCooldownPopupMinutes) taskCooldownPopupMinutes.textContent = taskTimeLeft.minutes;
+            if (taskCooldownPopupSeconds) taskCooldownPopupSeconds.textContent = taskTimeLeft.seconds;
+
+            const tasksCooldownMessage = document.getElementById('tasks-cooldown-message');
+            if (tasksCooldownMessage) {
+                if (taskTimeLeft.isActive) {
+                    tasksCooldownMessage.classList.remove('hidden');
+                } else {
+                    tasksCooldownMessage.classList.add('hidden');
+                    if (taskCooldownEndTime > 0) { // Only reset if it was active and just ended
+                        updateUserData(userId, { tasksCompleted: 0, taskCooldownEndTime: 0 });
+                    }
+                }
+            }
+
+            // Referral cooldown is now for the referrer's earnings, not a simulation button
+            const referralTimeLeft = calculateTimeLeft(referralCooldownEndTime);
+            const referralCooldownMessage = document.getElementById('referral-cooldown-message');
+            const referralCooldownHours = document.getElementById('referral-cooldown-hours');
+            const referralCooldownMinutes = document.getElementById('referral-cooldown-minutes');
+            const referralCooldownSeconds = document.getElementById('referral-cooldown-seconds');
+
+            if (referralCooldownHours) referralCooldownHours.textContent = referralTimeLeft.hours;
+            if (referralCooldownMinutes) referralCooldownMinutes.textContent = referralTimeLeft.minutes;
+            if (referralCooldownSeconds) referralCooldownSeconds.textContent = referralTimeLeft.seconds;
+
+            if (referralCooldownMessage) {
+                if (referralTimeLeft.isActive) {
+                    referralCooldownMessage.classList.remove('hidden');
+                } else {
+                    referralCooldownMessage.classList.add('hidden');
+                    if (referralCooldownEndTime > 0) { // Only reset if it was active and just ended
+                        updateUserData(userId, { referralCooldownEndTime: 0 });
+                    }
+                }
+            }
+
+            // Update automatic withdrawal cooldown display
+            const autoWithdrawalTimeLeft = calculateTimeLeft(lastAutomaticWithdrawalTime + AUTO_WITHDRAWAL_COOLDOWN_MS);
+            const autoWithdrawalCooldownMessage = document.getElementById('auto-withdrawal-cooldown-message');
+            const autoWithdrawalCooldownHours = document.getElementById('auto-withdrawal-cooldown-hours');
+            const autoWithdrawalCooldownMinutes = document.getElementById('auto-withdrawal-cooldown-minutes');
+            const autoWithdrawalCooldownSeconds = document.getElementById('auto-withdrawal-cooldown-seconds');
+
+            if (autoWithdrawalCooldownHours) autoWithdrawalCooldownHours.textContent = autoWithdrawalTimeLeft.hours;
+            if (autoWithdrawalCooldownMinutes) autoWithdrawalCooldownMinutes.textContent = autoWithdrawalTimeLeft.minutes;
+            if (autoWithdrawalCooldownSeconds) autoWithdrawalCooldownSeconds.textContent = autoWithdrawalTimeLeft.seconds;
+
+            if (autoWithdrawalCooldownMessage) {
+                if (autoWithdrawalTimeLeft.isActive) {
+                    autoWithdrawalCooldownMessage.classList.remove('hidden');
+                } else {
+                    autoWithdrawalCooldownMessage.classList.add('hidden');
+                }
+            }
+        }
+
+        // --- Live Activity Notifications (Right Side) Logic ---
+        const userNames = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Heidi", "Ivan", "Judy"];
+        const notificationQueueRight = [];
+        let notificationTimerRight = null;
+
+        function generateRightNotification() {
+            const type = Math.random() < 0.7 ? 'earned' : 'withdrew'; // 70% earned, 30% withdrew
+            const name = userNames[Math.floor(Math.random() * userNames.length)];
+            let amount;
+            let message;
+
+            if (type === 'earned') {
+                amount = (Math.random() * (300 - 50) + 50).toFixed(2); // $50 to $300
+                message = `${name} earned $${amount}!`;
+            } else {
+                amount = (Math.random() * (3000 - 500) + 500).toFixed(2); // $500 to $3000
+                message = `${name} withdrew $${amount}!`;
+            }
+            return { id: Date.now(), message };
+        }
+
+        function showRightNotification() {
+            const notifElem = document.getElementById('live-notification-right');
+            const messageElem = document.getElementById('live-notification-right-message');
+
+            if (notificationQueueRight.length > 0) {
+                const nextNotification = notificationQueueRight.shift();
+                messageElem.textContent = nextNotification.message;
+                notifElem.classList.remove('hidden');
+                notifElem.classList.add('animate-fade-in-out-right');
+
+                notificationTimerRight = setTimeout(() => {
+                    notifElem.classList.add('hidden');
+                    notifElem.classList.remove('animate-fade-in-out-right');
+                    // Small delay before showing next to avoid flicker
+                    setTimeout(() => showRightNotification(), 500);
+                }, 5000); // Show notification for 5 seconds
+            }
+        }
+
+        // --- Live Withdrawal Notifications (Left Side) Logic ---
+        const notificationQueueLeft = [];
+        let notificationTimerLeft = null;
+
+        function generateLeftNotification() {
+            const name = userNames[Math.floor(Math.random() * userNames.length)];
+            const amount = (Math.random() * (3500 - 1000) + 1000).toFixed(2); // $1000 to $3500
+            const message = `${name} submitted a withdrawal of $${amount}!`;
+            return { id: Date.now(), message };
+        }
+
+        function showLeftNotification() {
+            const notifElem = document.getElementById('live-notification-left');
+            const messageElem = document.getElementById('live-notification-left-message');
+
+            if (notificationQueueLeft.length > 0) {
+                const nextNotification = notificationQueueLeft.shift();
+                messageElem.textContent = nextNotification.message;
+                notifElem.classList.remove('hidden');
+                notifElem.classList.add('animate-fade-in-out-left');
+
+                notificationTimerLeft = setTimeout(() => {
+                    notifElem.classList.add('hidden');
+                    notifElem.classList.remove('animate-fade-in-out-left');
+                    // Small delay before showing next to avoid flicker
+                    setTimeout(() => showLeftNotification(), 500);
+                }, 6000); // Show notification for 6 seconds
+            }
+        }
+
+        // --- Handlers for various actions ---
+
+        // Handle watching an ad
+        async function handleWatchAd(adIndex) {
+            if (!userId) {
+                showAlert("Authentication Required", "Please log in to watch ads.", "error");
+                return;
+            }
+            if (adsWatched >= 30) {
+                showAlert("Limit Reached", "You have watched all ads for this session! Please wait for the cooldown.", "warning");
+                return;
+            }
+            if (cooldownEndTime > Date.now()) {
+                const timeLeft = calculateTimeLeft(cooldownEndTime);
+                showAlert("Cooldown Active", `Ad cooldown active. Please wait ${timeLeft.hours}h ${timeLeft.minutes}m ${timeLeft.seconds}s.`, "warning");
+                return;
+            }
+
+            const watchDuration = 10000; // 10 seconds
+            // Changed earnAmount to be between $1 and $10
+            const earnAmount = (Math.random() * (10 - 1) + 1); // Random between $1 and $10
+
+            window.open(adLinks[adIndex], '_blank');
+            showAlert("Watching Ad", `Watching ad ${adIndex + 1}... Please wait 10 seconds.`, "info");
+
+            setTimeout(async () => {
+                try {
+                    await updateUserData(userId, {
+                        balance: increment(parseFloat(earnAmount.toFixed(2))),
+                        adsWatched: increment(1)
+                    });
+                    triggerCoinRain(earnAmount, selectedCurrency); // Trigger coin rain on successful earning
+
+                    if (adsWatched + 1 >= 30) { // Check against updated adsWatched
+                        const fiveHoursLater = Date.now() + (5 * 60 * 60 * 1000); // 5 hours in milliseconds
+                        await updateUserData(userId, { cooldownEndTime: fiveHoursLater });
+                        document.getElementById('ad-completion-popup').classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error("Error updating ad watch data:", error);
+                    showAlert("Error", "Failed to record ad watch. Please try again.", "error");
+                }
+            }, watchDuration);
+        }
+
+        // Define segments for the spin wheel
+        const spinSegments = [
+            { value: 0.50, display: "$0.50", color: "#FF6347" }, // Red-Orange
+            { value: 1.00, display: "$1.00", color: "#4CAF50" }, // Green
+            { value: 2.50, display: "$2.50", color: "#2196F3" }, // Blue
+            { value: 5.00, display: "$5.00", color: "#9C27B0" }, // Purple
+            { value: 10.00, display: "$10.00", color: "#FF9800" }, // Orange
+            { value: 15.00, display: "$15.00", color: "#673AB7" }, // Deep Purple
+            { value: 20.00, display: "$20.00", color: "#00BCD4" }  // Cyan
+        ];
+
+        // Handle spinning the wheel
+        async function handleSpin() {
+            if (!userId) {
+                showAlert("Authentication Required", "Please log in to spin the wheel.", "error");
+                return;
+            }
+            if (spinCooldownEndTime > Date.now()) {
+                const timeLeft = calculateTimeLeft(spinCooldownEndTime);
+                showAlert("Cooldown Active", `Spin cooldown active. Please wait ${timeLeft.hours}h ${timeLeft.minutes}m ${timeLeft.seconds}s.`, "warning");
+                return;
+            }
+
+            const spinWheel = document.getElementById('spin-wheel-svg');
+            if (!spinWheel) return;
+
+            // Pick a random segment
+            const randomIndex = Math.floor(Math.random() * spinSegments.length);
+            const selectedSegment = spinSegments[randomIndex];
+            const earnAmount = selectedSegment.value;
+
+            // Calculate target rotation for the selected segment to land under the pointer
+            const anglePerSegment = 360 / spinSegments.length;
+            // The pointer is at the top (0 degrees). Segments are drawn starting from the right.
+            // We want the center of the `selectedSegment` to align with the top.
+            // `360 - (randomIndex * anglePerSegment + anglePerSegment / 2)`
+            const baseRotations = 5 * 360; // 5 full spins for visual effect
+            const finalRotation = baseRotations + (360 - (randomIndex * anglePerSegment + anglePerSegment / 2));
+
+            // Apply the rotation
+            spinWheel.style.transition = 'none'; // Remove previous transition instantly
+            spinWheel.style.transform = 'rotate(0deg)'; // Reset to 0 for a fresh spin
+            void spinWheel.offsetWidth; // Force reflow to apply the reset
+            spinWheel.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)'; // Apply new transition
+            spinWheel.style.transform = `rotate(${finalRotation}deg)`;
+            
+            // Highlight the selected segment after the spin animation completes
+            setTimeout(async () => {
+                // Remove any existing highlights
+                document.querySelectorAll('.spin-wheel-segment-path').forEach(path => {
+                    path.classList.remove('animate-segment-highlight');
+                });
+
+                // Add highlight to the winning segment
+                const winningSegmentPath = document.getElementById(`segment-path-${randomIndex}`);
+                if (winningSegmentPath) {
+                    winningSegmentPath.classList.add('animate-segment-highlight');
+                }
+
+                try {
+                    const tenHoursLater = Date.now() + (10 * 60 * 60 * 1000); // 10 hours in milliseconds
+                    await updateUserData(userId, {
+                        balance: increment(parseFloat(earnAmount.toFixed(2))),
+                        spinCooldownEndTime: tenHoursLater
+                    });
+                    showAlert("Congratulations!", `🎉 You won $${earnAmount.toFixed(2)}! It has been added to your balance.`, "success");
+                    triggerCoinRain(earnAmount, selectedCurrency); // Trigger coin rain on successful earning
+                } catch (error) {
+                    console.error("Error updating spin data:", error);
+                    showAlert("Error", "Failed to record spin. Please try again.", "error");
+                }
+            }, 4000); // Match CSS transition duration
+        }
+
+        // Handle completing a task
+        async function handleCompleteTask(taskId) {
+            if (!userId) {
+                showAlert("Authentication Required", "Please log in to complete tasks.", "error");
+                return;
+            }
+            if (tasksCompleted >= tasks.length) {
+                showAlert("Limit Reached", "You have completed all tasks for this session! Please wait for the cooldown.", "warning");
+                return;
+            }
+            if (taskCooldownEndTime > Date.now()) {
+                const timeLeft = calculateTimeLeft(taskCooldownEndTime);
+                showAlert("Cooldown Active", `Task cooldown active. Please wait ${timeLeft.hours}h ${timeLeft.minutes}m ${timeLeft.seconds}s.`, "warning");
+                return;
+            }
+
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) {
+                showAlert("Error", "Task not found.", "error");
+                return;
+            }
+
+            // For now, we'll just disable the button visually after click.
+            // A more robust system would track individual task completion for the user in Firestore.
+            const taskButton = document.querySelector(`.task-button[data-task-id="${taskId}"]`);
+            if (taskButton) {
+                taskButton.disabled = true; // Temporarily disable to prevent double click
+            }
+
+            const earnAmount = 5.00; // Each task earns $5
+
+            // Open ad link for the task
+            window.open(task.adLink, '_blank');
+            showAlert("Completing Task", `Redirecting to ad for "${task.title}"... Please wait 10 seconds.`, "info");
+
+            setTimeout(async () => {
+                try {
+                    await updateUserData(userId, {
+                        balance: increment(parseFloat(earnAmount.toFixed(2))),
+                        tasksCompleted: increment(1)
+                    });
+                    triggerCoinRain(earnAmount, selectedCurrency); // Trigger coin rain on successful earning
+
+                    if (tasksCompleted + 1 >= tasks.length) { // Check against updated tasksCompleted
+                        const fiveHoursLater = Date.now() + (5 * 60 * 60 * 1000); // 5 hours in milliseconds
+                        await updateUserData(userId, { taskCooldownEndTime: fiveHoursLater });
+                        document.getElementById('task-completion-popup').classList.remove('hidden');
+                    }
+                    showAlert("Task Completed!", `Task "${task.title}" completed! You earned $${earnAmount.toFixed(2)}.`, "success");
+                } catch (error) {
+                    console.error("Error updating task data:", error);
+                    showAlert("Error", "Failed to record task completion. Please try again.", "error");
+                } finally {
+                    if (taskButton) {
+                        taskButton.disabled = false; // Re-enable if there was an error or if not all tasks are done
+                    }
+                }
+            }, 10000); // 10 seconds delay for task ad viewing
+        }
+
+        // --- New: Automatic Withdrawal Logic ---
+        async function checkAndProcessAutomaticWithdrawal() {
+            if (!userId || !isAuthReady) return; // Ensure user is logged in and data is ready
+
+            const now = Date.now();
+            const timeSinceLastWithdrawal = now - lastAutomaticWithdrawalTime;
+            const autoWithdrawalCooldownExpired = timeSinceLastWithdrawal > AUTO_WITHDRAWAL_COOLDOWN_MS;
+
+            if (balance >= MIN_WITHDRAWAL_AMOUNT && savedWithdrawalMethod && savedWithdrawalAddress && autoWithdrawalCooldownExpired) {
+                const amountToWithdraw = balance; // Withdraw the entire current balance
+
+                try {
+                    // Deduct balance to 0 and update last automatic withdrawal time
+                    await updateUserData(userId, {
+                        balance: 0,
+                        lastAutomaticWithdrawalTime: now
+                    });
+
+                    // Record the withdrawal request
+                    await addWithdrawalRequest(userId, {
+                        amount: parseFloat(amountToWithdraw.toFixed(2)),
+                        method: savedWithdrawalMethod,
+                        details: savedWithdrawalAddress,
+                        type: 'automatic' // Mark as automatic withdrawal
+                    });
+
+                    // Update the withdrawal confirmation popup with dynamic data
+                    document.getElementById('withdrawal-amount-display').textContent = `$${amountToWithdraw.toFixed(2)}`;
+                    document.getElementById('withdrawal-method-display').textContent = savedWithdrawalMethod.toUpperCase();
+                    document.getElementById('withdrawal-confirmation-popup').classList.remove('hidden');
+
+                    // showAlert("Automatic Withdrawal!", `An automatic withdrawal of $${amountToWithdraw.toFixed(2)} via ${savedWithdrawalMethod} has been processed. Your balance is now $0.00.`, "success");
+                    // Update local state immediately for UI consistency
+                    balance = 0; // Directly update global variable, onSnapshot will sync later
+                    lastAutomaticWithdrawalTime = now;
+                    updateBalanceDisplay(); // Update UI
+                    updateCooldownDisplay(); // Update UI
+                    triggerCoinRain(amountToWithdraw, selectedCurrency); // Trigger coin rain for withdrawal
+                } catch (error) {
+                    console.error("Error during automatic withdrawal:", error);
+                    showAlert("Auto Withdrawal Failed", "An error occurred during automatic withdrawal. Please contact support.", "error");
+                }
+            }
+        }
+
+        // Handle saving withdrawal details (no longer an immediate withdrawal)
+        async function handleSaveWithdrawalDetails(event) {
+            event.preventDefault();
+            if (!userId) {
+                showAlert("Authentication Required", "Please log in to save withdrawal details.", "error");
+                return;
+            }
+
+            const form = event.target;
+            const method = form.elements['withdrawal-method-hidden'].value;
+            const address = form.elements['withdrawal-address'].value.trim();
+
+            if (!method || !address) {
+                showAlert("Missing Information", "Please select a method and enter your details.", "warning");
+                return;
+            }
+
+            try {
+                await updateUserData(userId, {
+                    withdrawalMethod: method,
+                    withdrawalAddress: address
+                });
+                // Update local state
+                savedWithdrawalMethod = method;
+                savedWithdrawalAddress = address;
+
+                showAlert("Details Saved!", "Your withdrawal details have been saved. Funds will be automatically sent when your balance reaches $500.", "success");
+                renderPage('withdrawal'); // Re-render to show saved details
+            } catch (error) {
+                console.error("Error saving withdrawal details:", error);
+                showAlert("Save Failed", error.message, "error");
+            }
+        }
+
+        // Function to format balance based on selected currency
+        function getFormattedBalance(value) {
+            const val = value !== undefined ? value : balance;
+            const rate = exchangeRates[selectedCurrency];
+            if (selectedCurrency === 'USD') {
+                return `$${val.toFixed(2)}`;
+            } else {
+                return `${(val * rate).toFixed(4)} ${selectedCurrency}`;
+            }
+        }
+
+        // --- UI Rendering Functions ---
+        function updateBalanceDisplay() {
+            const balanceElement = document.getElementById('current-balance-display');
+            if (balanceElement) {
+                // If the actual balance has changed, start the animation
+                if (balance !== displayedBalance) {
+                    animateBalance(balanceElement, displayedBalance, balance);
+                } else {
+                    // Otherwise, just update the text content directly (e.g., on initial load or currency change)
+                    balanceElement.textContent = getFormattedBalance(balance);
+                }
+            }
+            const adsWatchedElement = document.getElementById('ads-watched-display');
+            if (adsWatchedElement) {
+                adsWatchedElement.textContent = `${adsWatched} / 30`;
+            }
+            const progressBar = document.getElementById('ads-progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${(adsWatched / 30) * 100}%`;
+            }
+            const withdrawalCurrentBalance = document.getElementById('withdrawal-current-balance');
+            if (withdrawalCurrentBalance) {
+                withdrawalCurrentBalance.textContent = getFormattedBalance(balance);
+            }
+            const tasksCompletedDisplay = document.getElementById('tasks-completed-display');
+            if (tasksCompletedDisplay) {
+                tasksCompletedDisplay.textContent = `${tasksCompleted} / ${tasks.length}`;
+            }
+            const tasksProgressBar = document.getElementById('tasks-progress-bar');
+            if (tasksProgressBar) {
+                tasksProgressBar.style.width = `${(tasksCompleted / tasks.length) * 100}%`;
+            }
+            const referralEarningsDisplay = document.getElementById('referral-earnings-display');
+            if (referralEarningsDisplay) {
+                referralEarningsDisplay.textContent = `$${referralEarnings.toFixed(2)}`;
+            }
+            // Update unclaimed referral balance on referral page
+            const unclaimedReferralBalanceDisplay = document.getElementById('unclaimed-referral-balance-display');
+            if (unclaimedReferralBalanceDisplay) {
+                unclaimedReferralBalanceDisplay.textContent = `$${unclaimedReferralBalance.toFixed(2)}`;
+            }
+            const claimReferralButton = document.getElementById('claim-referral-earnings-button');
+            if (claimReferralButton) {
+                claimReferralButton.disabled = unclaimedReferralBalance <= 0;
+            }
+        }
+
+        // Balance counting animation logic
+        let animationFrameId = null;
+        function animateBalance(element, startValue, endValue) {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            const duration = 1000; // 1 second
+            let startTime = null;
+
+            function step(currentTime) {
+                if (!startTime) startTime = currentTime;
+                const progress = (currentTime - startTime) / duration;
+
+                if (progress < 1) {
+                    const easedProgress = 0.5 - Math.cos(progress * Math.PI) / 2; // Ease-in-out
+                    displayedBalance = startValue + (endValue - startValue) * easedProgress;
+                    element.textContent = getFormattedBalance(displayedBalance);
+                    animationFrameId = requestAnimationFrame(step);
+                } else {
+                    displayedBalance = endValue;
+                    element.textContent = getFormattedBalance(displayedBalance);
+                    animationFrameId = null;
+                }
+            }
+            animationFrameId = requestAnimationFrame(step);
+        }
+
+        function renderAuthPage() {
+            const mainContent = document.getElementById('main-content');
+            document.getElementById('app-header').classList.add('hidden'); // Hide header on auth page
+            // Hide loading message
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) loadingMessage.classList.add('hidden');
+
+            mainContent.innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 text-gray-100 max-w-md w-full mx-auto">
+                    <h2 class="text-3xl font-extrabold text-blue-400 mb-6 text-center font-heading">Welcome to Ad watch Rewards</h2>
+                    <p class="text-gray-300 mb-8 text-center">Login or create an account to start earning!</p>
+
+                    <form id="auth-form" class="flex flex-col gap-4">
+                        <div>
+                            <label for="auth-email" class="block text-gray-200 text-sm font-bold mb-2 font-heading">Email:</label>
+                            <input
+                                type="email"
+                                id="auth-email"
+                                class="shadow appearance-none border border-gray-600 bg-gray-800 rounded-lg w-full py-3 px-4 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="your@email.com"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label for="auth-password" class="block text-gray-200 text-sm font-bold mb-2 font-heading">Password:</label>
+                            <input
+                                type="password"
+                                id="auth-password"
+                                class="shadow appearance-none border border-gray-600 bg-gray-800 rounded-lg w-full py-3 px-4 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="********"
+                                required
+                            />
+                        </div>
+                        <button type="submit" id="login-button" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 font-heading">
+                            Login
+                        </button>
+                        <button type="button" id="create-account-button" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 font-heading">
+                            Create Account
+                        </button>
+                        <button type="button" id="guest-login-button" class="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 font-heading">
+                            Continue as Guest
+                        </button>
+                    </form>
+                    <div class="text-center mt-4">
+                        <a href="#" id="forgot-password-link" class="text-blue-400 hover:text-blue-300 text-sm font-semibold font-heading transition duration-300">Forgot Password?</a>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('auth-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('auth-email').value;
+                const password = document.getElementById('auth-password').value;
+                loginUser(email, password);
+            });
+            document.getElementById('create-account-button').addEventListener('click', () => {
+                const email = document.getElementById('auth-email').value;
+                const password = document.getElementById('auth-password').value;
+                createAccount(email, password);
+            });
+            document.getElementById('guest-login-button').addEventListener('click', loginAsGuest);
+            document.getElementById('forgot-password-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('auth-email').value;
+                if (email) {
+                    handleForgotPassword(email);
+                } else {
+                    showAlert("Email Required", "Please enter your email address in the email field above to reset your password.", "warning");
+                }
+            });
+
+            // Show referral claim popup if activeReferralCode is present
+            if (activeReferralCode) {
+                document.getElementById('invited-by-code').textContent = activeReferralCode;
+                document.getElementById('referral-claim-popup').classList.remove('hidden');
+            } else {
+                document.getElementById('referral-claim-popup').classList.add('hidden');
+            }
+        }
+
+
+        function renderDashboardPage() {
+            const mainContent = document.getElementById('main-content');
+            document.getElementById('app-header').classList.remove('hidden'); // Show header on dashboard
+            // Hide loading message
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) loadingMessage.classList.add('hidden');
+
+            mainContent.innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 text-gray-100">
+                    <h2 class="text-3xl font-extrabold text-gray-100 mb-6 text-center font-heading">Your Dashboard</h2>
+
+                    <!-- Balance Display -->
+                    <div class="bg-gradient-to-r from-blue-700 to-purple-800 text-white p-6 rounded-xl shadow-lg mb-8 flex flex-col items-center border border-blue-600 shadow-custom-blue">
+                        <p class="text-lg font-semibold mb-2 font-heading">Current Balance:</p>
+                        <p id="current-balance-display" class="text-5xl font-bold mb-4 font-heading">${getFormattedBalance(displayedBalance)}</p>
+                        <div class="flex items-center space-x-2">
+                            <label for="currency-select" class="text-sm font-heading">Display in:</label>
+                            <select id="currency-select" class="bg-white bg-opacity-20 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-white font-heading">
+                                ${Object.keys(exchangeRates).map(currency => `<option value="${currency}" class="text-gray-900" ${selectedCurrency === currency ? 'selected' : ''}>${currency}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Ad Session Progress -->
+                    <div class="bg-gray-900 p-6 rounded-xl shadow-md mb-8 border border-gray-700">
+                        <h3 class="text-2xl font-semibold text-gray-200 mb-4 font-heading">Ad Watching Progress</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <p class="text-lg text-gray-300 font-heading">Ads Watched This Session:</p>
+                            <p id="ads-watched-display" class="text-2xl font-bold text-blue-400 font-heading">${adsWatched} / 30</p>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-3">
+                            <div id="ads-progress-bar" class="bg-green-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: ${(adsWatched / 30) * 100}%"></div>
+                        </div>
+                        ${adsWatched >= 30 && cooldownEndTime > Date.now() ? `
+                            <p class="text-red-400 mt-4 text-center font-medium font-heading">
+                                Next ads available in: <span id="cooldown-dashboard-hours">0</span>h <span id="cooldown-dashboard-minutes">0</span>m <span id="cooldown-dashboard-seconds">0</span>s
+                            </p>
+                        ` : `
+                            <p class="text-green-400 mt-4 text-center font-medium font-heading">
+                                ${adsWatched < 30 ? 'Watch more ads to reach your daily limit!' : 'Cooldown ended! You can watch ads again.'}
+                            </p>
+                        `}
+                    </div>
+
+                    <!-- Referral Earnings Summary -->
+                    <div class="bg-gray-900 p-6 rounded-xl shadow-md mb-8 border border-gray-700">
+                        <h3 class="text-2xl font-semibold text-gray-200 mb-4 font-heading">Referral Earnings (Claimed)</h3>
+                        <div class="flex items-center justify-between">
+                            <p class="text-lg text-gray-300 font-heading">Total Claimed from Referrals:</p>
+                            <p id="referral-earnings-display" class="text-2xl font-bold text-green-400 font-heading">$${referralEarnings.toFixed(2)}</p>
+                        </div>
+                        <p class="text-gray-400 text-sm mt-2 text-center">Invite friends and earn $30 for each successful referral into your unclaimed balance!</p>
+                    </div>
+
+
+                    <!-- Quick Actions -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <button id="dashboard-watch-ads" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center space-x-2 border border-green-500 font-heading shadow-custom-green">
+                            <i class="fas fa-play-circle"></i>
+                            <span>Watch Ads</span>
+                        </button>
+                        <button id="dashboard-spin-roll" class="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-orange-600 hover:to-yellow-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center space-x-2 border border-yellow-400 font-heading shadow-custom-yellow">
+                            <i class="fas fa-spinner"></i>
+                            <span>Spin & Win</span>
+                        </button>
+                        <button id="dashboard-tasks" class="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center space-x-2 border border-purple-500 font-heading shadow-custom-purple">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>Complete Tasks</span>
+                        </button>
+                        <button id="dashboard-referral" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center space-x-2 border border-blue-500 font-heading shadow-custom-blue">
+                            <i class="fas fa-share-alt"></i>
+                            <span>Refer a Friend</span>
+                        </button>
+                        <button id="dashboard-withdrawal" class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center space-x-2 border border-red-500 font-heading shadow-custom-red">
+                            <i class="fas fa-wallet"></i>
+                            <span>Withdraw Funds</span>
+                        </button>
+                        <button id="dashboard-privacy" class="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform hover:scale-105 transition duration-300 flex items-center justify-center space-x-2 border border-gray-500 font-heading shadow-custom-gray">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Ad Privacy Policy</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('currency-select').addEventListener('change', (e) => {
+                selectedCurrency = e.target.value;
+                updateBalanceDisplay();
+            });
+            document.getElementById('dashboard-watch-ads').addEventListener('click', () => renderPage('watch-ads'));
+            document.getElementById('dashboard-spin-roll').addEventListener('click', () => renderPage('spin-roll'));
+            document.getElementById('dashboard-tasks').addEventListener('click', () => renderPage('tasks')); // New: Tasks button
+            document.getElementById('dashboard-referral').addEventListener('click', () => renderPage('referral')); // New: Referral button
+            document.getElementById('dashboard-withdrawal').addEventListener('click', () => renderPage('withdrawal'));
+            document.getElementById('dashboard-privacy').addEventListener('click', () => renderPage('privacy'));
+            updateBalanceDisplay(); // Initial update for dashboard
+            updateCooldownDisplay(); // Update cooldown on dashboard
+        }
+
+        // Fisher-Yates (Knuth) shuffle algorithm
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+
+            // While there remain elements to shuffle.
+            while (currentIndex !== 0) {
+                // Pick a remaining element.
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+
+                // And swap it with the current element.
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+            return array;
+            }
+
+        function renderWatchAdsPage() {
+            const mainContent = document.getElementById('main-content');
+            // Create a shuffled copy of adImageUrls for this render session
+            const shuffledAdImageUrls = shuffleArray([...adImageUrls]);
+            // Hide loading message
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) loadingMessage.classList.add('hidden');
+
+            mainContent.innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-lg shadow-2xl border border-gray-700 text-gray-100">
+                    <h2 class="text-3xl font-extrabold text-gray-100 mb-6 text-center font-heading">Watch Ads & Earn</h2>
+                    <p class="text-gray-300 mb-6 text-center">Click on an ad to watch it for 10 seconds and earn! (<span id="ads-watched-page-display">${adsWatched}</span>/30)</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${adLinks.map((link, index) => `
+                            <div
+                                class="bg-gray-900 rounded-xl shadow-md overflow-hidden transform hover:scale-105 transition duration-300 cursor-pointer border border-gray-700 ad-card"
+                                data-ad-index="${index}"
+                            >
+                                <img
+                                    src="${shuffledAdImageUrls[index % shuffledAdImageUrls.length]}"
+                                    alt="Ad Post ${index + 1}"
+                                    class="w-full h-40 object-cover"
+                                    onerror="this.onerror=null;this.src='https://placehold.co/400x225/2C3E50/ECF0F1?text=Image+Load+Error';"
+                                />
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-lg text-gray-100 mb-2 font-heading">Ad Title ${index + 1}</h3>
+                                    <p class="text-gray-300 text-sm">Watch this ad for 10 seconds to earn <span class="font-bold text-green-400">$1.00 - $10.00</span>.</p>
+                                    <button
+                                        class="mt-4 w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-2 px-4 rounded-lg shadow-md border border-blue-500 watch-ad-button font-heading"
+                                        ${adsWatched >= 30 || cooldownEndTime > Date.now() ? 'disabled' : ''}
+                                    >
+                                        ${adsWatched >= 30 || cooldownEndTime > Date.now() ? 'Cooldown Active' : 'Watch Ad'}
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button id="watch-ads-back-button" class="mt-8 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transform hover:scale-105 transition duration-300 block mx-auto border border-gray-500 font-heading">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+            document.querySelectorAll('.ad-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const adIndex = parseInt(e.currentTarget.dataset.adIndex);
+                    handleWatchAd(adIndex);
+                });
+            });
+            document.getElementById('watch-ads-back-button').addEventListener('click', () => renderPage('dashboard'));
+            document.getElementById('ads-watched-page-display').textContent = adsWatched;
+        }
+
+        function renderSpinRollPage() {
+            const mainContent = document.getElementById('main-content');
+            const spinTimeLeft = calculateTimeLeft(spinCooldownEndTime);
+            // Hide loading message
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) loadingMessage.classList.add('hidden');
+
+            // Define segments for the spin wheel (values from $0.50 to $20.00)
+            const segments = spinSegments; // Use the updated global spinSegments
+            const numSegments = segments.length;
+            const anglePerSegment = 360 / numSegments;
+            const radius = 100; // SVG coordinate system radius
+
+            let svgSegments = '';
+            let svgTexts = '';
+
+            segments.forEach((segment, index) => {
+                const startAngle = index * anglePerSegment;
+                const endAngle = (index + 1) * anglePerSegment;
+
+                // Convert polar to cartesian for SVG path
+                const toRadians = (degrees) => degrees * (Math.PI / 180);
+
+                const startX = 50 + radius * Math.cos(toRadians(startAngle - 90)); // -90 to start from top
+                const startY = 50 + radius * Math.sin(toRadians(startAngle - 90));
+                const endX = 50 + radius * Math.cos(toRadians(endAngle - 90));
+                const endY = 50 + radius * Math.sin(toRadians(endAngle - 90));
+
+                const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+
+                svgSegments += `
+                    <path
+                        id="segment-path-${index}"
+                        class="spin-wheel-segment-path"
+                        d="M 50 50 L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY} Z"
+                        fill="${segment.color}"
+                        stroke="#1f2937" stroke-width="1"
+                    />
+                `;
+
+                // Text positioning (approximate center of segment)
+                const textAngle = startAngle + (anglePerSegment / 2) - 90; // Center of segment
+                const textRadius = radius * 0.7; // Position text closer to center
+                const textX = 50 + textRadius * Math.cos(toRadians(textAngle));
+                const textY = 50 + textRadius * Math.sin(toRadians(textAngle));
+
+                svgTexts += `
+                    <text x="${textX}" y="${textY + 5}" fill="white" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle" transform="rotate(${textAngle + 90}, ${textX}, ${textY})">
+                        ${segment.display}
+                    </text>
+                `;
+            });
+
+
+            mainContent.innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-lg shadow-2xl border border-gray-700 flex flex-col items-center text-gray-100">
+                    <h2 class="text-3xl font-extrabold text-gray-100 mb-6 text-center font-heading">Spin & Win!</h2>
+                    <p class="text-gray-300 mb-8 text-center">Click the button to spin the wheel and earn between $0.50 and $20.00! You can spin once every 10 hours.</p>
+
+                    <!-- Advanced Spin Wheel SVG -->
+                    <div class="spin-wheel-container">
+                        <svg id="spin-wheel-svg" class="spin-wheel" viewBox="0 0 100 100">
+                            ${svgSegments}
+                            ${svgTexts}
+                        </svg>
+                        <div class="pointer"></div>
+                        <div class="wheel-center">SPIN</div>
+                    </div>
+
+                    <button id="spin-button" class="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold py-4 px-8 rounded-full shadow-lg transform hover:scale-105 transition duration-300 text-xl border border-purple-500 font-heading shadow-custom-purple" ${spinTimeLeft.isActive ? 'disabled' : ''}>
+                        Spin the Wheel!
+                    </button>
+                    <p id="spin-cooldown-message" class="text-red-400 mt-4 text-center font-medium font-heading ${spinTimeLeft.isActive ? '' : 'hidden'}">
+                        Next spin available in: <span id="spin-cooldown-hours">0</span>h <span id="spin-cooldown-minutes">0</span>m <span id="spin-cooldown-seconds">0</span>s
+                    </p>
+                    <button id="spin-back-button" class="mt-8 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transform hover:scale-105 transition duration-300 border border-gray-500 font-heading">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+            document.getElementById('spin-button').addEventListener('click', handleSpin);
+            document.getElementById('spin-back-button').addEventListener('click', () => renderPage('dashboard'));
+            updateCooldownDisplay(); // Update spin cooldown on page load
+        }
+
+        function renderTasksPage() {
+            const mainContent = document.getElementById('main-content');
+            const taskTimeLeft = calculateTimeLeft(taskCooldownEndTime);
+            // Hide loading message
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) loadingMessage.classList.add('hidden');
+
+            mainContent.innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-lg shadow-2xl border border-gray-700 text-gray-100">
+                    <h2 class="text-3xl font-extrabold text-gray-100 mb-6 text-center font-heading">Complete Tasks & Earn</h2>
+                    <p class="text-gray-300 mb-6 text-center">Complete these tasks to earn $5 each! (<span id="tasks-completed-display">${tasksCompleted}</span>/${tasks.length})</p>
+                    <div class="w-full bg-gray-700 rounded-full h-3 mb-6">
+                        <div id="tasks-progress-bar" class="bg-yellow-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: ${(tasksCompleted / tasks.length) * 100}%"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${tasks.map((task, index) => {
+                            const isTaskCompleted = (tasksCompleted > index && taskCooldownEndTime === 0);
+                            const isDisabled = tasksCompleted >= tasks.length || taskCooldownEndTime > Date.now() || isTaskCompleted;
+                            return `
+                            <div class="bg-gray-900 rounded-xl shadow-md p-4 border border-gray-700">
+                                <h3 class="font-semibold text-lg text-gray-100 mb-2 font-heading">${task.title}</h3>
+                                <p class="text-gray-300 text-sm mb-4">${task.description}</p>
+                                <p class="text-green-400 font-bold mb-4">Earn $5.00</p>
+                                <button
+                                    class="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-2 px-4 rounded-lg shadow-md task-button font-heading"
+                                    data-task-id="${task.id}"
+                                    ${isDisabled ? 'disabled' : ''}
+                                >
+                                    ${isTaskCompleted ? 'Completed' : (tasksCompleted >= tasks.length || taskCooldownEndTime > Date.now() ? 'Cooldown Active' : 'Complete Task')}
+                                </button>
+                            </div>
+                        `;
+                        }).join('')}
+                    </div>
+
+                    <p id="tasks-cooldown-message" class="text-red-400 mt-4 text-center font-medium font-heading ${taskTimeLeft.isActive ? '' : 'hidden'}">
+                        New tasks available in: <span id="task-cooldown-hours">0</span>h <span id="task-cooldown-minutes">0</span>m <span id="task-cooldown-seconds">0</span>s
+                    </p>
+
+                    <button id="tasks-back-button" class="mt-8 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transform hover:scale-105 transition duration-300 block mx-auto border border-gray-500 font-heading">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+            document.querySelectorAll('.task-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const taskId = parseInt(e.currentTarget.dataset.taskId);
+                    handleCompleteTask(taskId);
+                });
+            });
+            document.getElementById('tasks-back-button').addEventListener('click', () => renderPage('dashboard'));
+            updateBalanceDisplay(); // Update task progress display
+            updateCooldownDisplay(); // Update task cooldown on page load
+        }
+
+        function renderReferralPage() {
+            const mainContent = document.getElementById('main-content');
+            const referralLink = `${BASE_APP_URL}?ref=${referralCode}`; // Construct the full referral link
+            // Hide loading message
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) loadingMessage.classList.add('hidden');
+
+            mainContent.innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-lg shadow-2xl border border-gray-700 text-gray-100">
+                    <h2 class="text-3xl font-extrabold text-gray-100 mb-6 text-center font-heading">Referral Program</h2>
+                    <p class="text-gray-300 mb-8 text-center">Invite your friends to join and earn <span class="font-bold text-green-400">$30.00</span> for each successful referral!</p>
+
+                    <div class="bg-gray-900 p-6 rounded-xl shadow-md mb-8 border border-gray-700 text-center">
+                        <p class="text-lg text-gray-300 font-heading mb-2">Your Unique Referral Link:</p>
+                        <div class="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3 mb-4">
+                            <input
+                                type="text"
+                                id="referral-link-display"
+                                class="flex-grow shadow appearance-none border border-gray-600 bg-gray-700 rounded-lg py-2 px-4 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 text-center sm:text-left"
+                                value="${referralLink}"
+                                readonly
+                            />
+                            <button id="copy-referral-link" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 flex items-center justify-center gap-2 w-full sm:w-auto">
+                                <i class="fas fa-copy"></i> Copy Link
+                            </button>
+                        </div>
+                        <p class="text-gray-400 text-sm">Share this link with your friends to invite them!</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-gray-900 p-6 rounded-xl shadow-md border border-gray-700 text-center">
+                            <p class="text-lg text-gray-300 font-heading mb-2">Total Friends Referred:</p>
+                            <p id="total-referrals-display" class="text-4xl font-bold text-green-400">${totalReferrals}</p>
+                        </div>
+                        <div class="bg-gray-900 p-6 rounded-xl shadow-md border border-gray-700 text-center">
+                            <p class="text-lg text-gray-300 font-heading mb-2">Total Claimed Earnings:</p>
+                            <p id="referral-earnings-page-display" class="text-4xl font-bold text-green-400">$${referralEarnings.toFixed(2)}</p>
+                        </div>
+                    </div>
+
+                    <!-- Unclaimed Referral Balance and Claim Button -->
+                    <div class="bg-gray-900 p-6 rounded-xl shadow-md mb-8 border border-yellow-600 text-center">
+                        <p class="text-lg text-gray-300 font-heading mb-2">Unclaimed Referral Balance:</p>
+                        <p id="unclaimed-referral-balance-display" class="text-4xl font-bold text-yellow-400">$${unclaimedReferralBalance.toFixed(2)}</p>
+                        <button id="claim-referral-earnings-button" class="mt-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 border border-green-500 font-heading" ${unclaimedReferralBalance <= 0 ? 'disabled' : ''}>
+                            <i class="fas fa-hand-holding-usd"></i> Claim Earnings
+                        </button>
+                    </div>
+
+                    <p id="referral-cooldown-message" class="text-red-400 mt-4 text-center font-medium font-heading hidden">
+                        Referral rewards cooldown active. Next reward possible in: <span id="referral-cooldown-hours">0</span>h <span id="referral-cooldown-minutes">0</span>m <span id="referral-cooldown-seconds">0</span>s
+                    </p>
+
+                    <button id="referral-back-button" class="mt-8 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transform hover:scale-105 transition duration-300 block mx-auto border border-gray-500 font-heading">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('copy-referral-link').addEventListener('click', () => {
+                const linkToCopy = document.getElementById('referral-link-display').value;
+                const textarea = document.createElement('textarea');
+                textarea.value = linkToCopy;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showAlert("Copied!", "Referral link copied to clipboard.", "success");
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    showAlert("Error", "Failed to copy link. Please copy manually.", "error");
+                }
+                document.body.removeChild(textarea);
+            });
+
+            document.getElementById('claim-referral-earnings-button').addEventListener('click', handleClaimReferralEarnings); // New event listener
+
+            document.getElementById('referral-back-button').addEventListener('click', () => renderPage('dashboard'));
+            updateCooldownDisplay(); // Update referral cooldown on page load
+        }
+        
+
+        function renderWithdrawalPage() {
+            const mainContent = document.getElementById('main-content');
+            const autoWithdrawalTimeLeft = calculateTimeLeft(lastAutomaticWithdrawalTime + AUTO_WITHDRAWAL_COOLDOWN_MS);
+            // Hide loading message
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) loadingMessage.classList.add('hidden');
+
+            mainContent.innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-lg shadow-2xl border border-gray-700 text-gray-100">
+                    <h2 class="text-3xl font-extrabold text-gray-100 mb-6 text-center font-heading">Withdraw Your Earnings</h2>
+                    <p class="text-gray-300 mb-6 text-center">Current Balance: <span class="font-bold text-blue-400" id="withdrawal-current-balance">${getFormattedBalance(balance)}</span></p>
+                    <p class="text-gray-300 mb-6 text-center text-sm">
+                        Minimum balance for automatic withdrawal: <span class="font-bold text-green-400">$${MIN_WITHDRAWAL_AMOUNT.toFixed(2)}</span>
+                    </p>
+
+                    ${savedWithdrawalMethod && savedWithdrawalAddress ? `
+                        <div class="bg-gray-900 p-6 rounded-xl shadow-md mb-8 border border-blue-600 text-center">
+                            <h3 class="text-xl font-semibold text-blue-400 mb-3 font-heading">Your Saved Withdrawal Details:</h3>
+                            <p class="text-lg text-gray-200 mb-2">Method: <span class="font-bold text-yellow-300">${savedWithdrawalMethod.toUpperCase()}</span></p>
+                            <p class="text-md text-gray-300 break-words">Address/Details: <span class="font-mono text-green-300">${savedWithdrawalAddress}</span></p>
+                            <p class="text-green-400 font-medium mt-4">
+                                Funds will be automatically sent when your balance reaches $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)}.
+                            </p>
+                            ${autoWithdrawalTimeLeft.isActive ? `
+                                <p id="auto-withdrawal-cooldown-message" class="text-red-400 mt-2 text-center font-medium font-heading">
+                                    Next automatic withdrawal possible in: <span id="auto-withdrawal-cooldown-hours">0</span>h <span id="auto-withdrawal-cooldown-minutes">0</span>m <span id="auto-withdrawal-cooldown-seconds">0</span>s
+                                </p>
+                            ` : `
+                                <p id="auto-withdrawal-cooldown-message" class="text-green-400 mt-2 text-center font-medium font-heading hidden">
+                                    Ready for automatic withdrawal!
+                                </p>
+                            `}
+                        </div>
+                    ` : `
+                        <div class="bg-gray-900 p-6 rounded-xl shadow-md mb-8 border border-yellow-600 text-center">
+                            <p class="text-lg text-yellow-300 font-heading">No withdrawal details saved yet.</p>
+                            <p class="text-gray-300 mt-2">Please save your details below to enable automatic withdrawals.</p>
+                        </div>
+                    `}
+
+                    <form id="withdrawal-form" class="bg-gray-900 p-6 rounded-xl shadow-md border border-gray-700 text-gray-100">
+                        <div class="mb-6">
+                            <label class="block text-gray-200 text-sm font-bold mb-2 font-heading">
+                                Select Withdrawal Method:
+                            </label>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <button type="button" class="p-4 rounded-xl shadow-lg flex flex-col items-center justify-center transition duration-300 border withdrawal-method-button" data-method="paypal">
+                                    <img src="https://placehold.co/60x60/003087/FFFFFF?text=PayPal" alt="PayPal Icon" class="w-12 h-12 mb-2 rounded-full" />
+                                    <span class="font-semibold font-heading">PayPal</span>
+                                </button>
+                                <button type="button" class="p-4 rounded-xl shadow-lg flex flex-col items-center justify-center transition duration-300 border withdrawal-method-button" data-method="crypto">
+                                    <img src="https://placehold.co/60x60/F7931A/FFFFFF?text=Crypto" alt="Crypto Icon" class="w-12 h-12 mb-2 rounded-full" />
+                                    <span class="font-semibold font-heading">Crypto</span>
+                                </button>
+                                <button type="button" class="p-4 rounded-xl shadow-lg flex flex-col items-center justify-center transition duration-300 border withdrawal-method-button" data-method="bank">
+                                    <img src="https://placehold.co/60x60/28A745/FFFFFF?text=Bank" alt="Bank Icon" class="w-12 h-12 mb-2 rounded-full" />
+                                    <span class="font-semibold font-heading">Bank Transfer</span>
+                                </button>
+                            </div>
+                            <input type="hidden" id="withdrawal-method-hidden" value="${savedWithdrawalMethod || 'paypal'}"> <!-- Hidden input to store selected method -->
+                        </div>
+
+                        <div class="mb-6">
+                            <label for="withdrawal-address" class="block text-gray-200 text-sm font-bold mb-2 font-heading">
+                                ${savedWithdrawalMethod === 'paypal' ? 'PayPal Email:' : savedWithdrawalMethod === 'crypto' ? 'Crypto Wallet Address (e.g., BTC, ETH, XRP, USDT):' : savedWithdrawalMethod === 'bank' ? 'Bank Account Details (Bank Name, Account No., Swift Code):' : 'Enter your withdrawal details:'}
+                            </label>
+                            <textarea
+                                id="withdrawal-address"
+                                class="shadow appearance-none border border-gray-600 bg-gray-800 rounded-lg w-full py-3 px-4 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+                                placeholder="${savedWithdrawalMethod === 'paypal' ? 'your-email@example.com' : savedWithdrawalMethod === 'crypto' ? '0xAbc...123 (ETH), 1A1zP... (BTC), etc.' : savedWithdrawalMethod === 'bank' ? 'Bank Name: ABC Bank\nAccount Number: 123456789\nSwift Code: ABCDEFGH' : 'Enter your PayPal email, crypto address, or bank details'}"
+                                required
+                            >${savedWithdrawalAddress || ''}</textarea>
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transform hover:scale-105 transition duration-300 flex items-center justify-center space-x-2 border border-blue-500 font-heading"
+                        >
+                            <i class="fas fa-save"></i>
+                            <span>Save Withdrawal Details</span>
+                        </button>
+                    </form>
+
+                    <button id="withdrawal-back-button" class="mt-8 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transform hover:scale-105 transition duration-300 block mx-auto border border-gray-500 font-heading">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+
+            // Event listeners for withdrawal form
+            const withdrawalForm = document.getElementById('withdrawal-form');
+            if (withdrawalForm) {
+                withdrawalForm.addEventListener('submit', handleSaveWithdrawalDetails);
+            }
+
+            const withdrawalMethodButtons = document.querySelectorAll('.withdrawal-method-button');
+            const withdrawalMethodHidden = document.getElementById('withdrawal-method-hidden');
+            const withdrawalAddressLabel = withdrawalForm.querySelector('label[for="withdrawal-address"]');
+            const withdrawalAddressTextarea = document.getElementById('withdrawal-address');
+
+            function updateMethodSelection(selectedMethod) {
+                withdrawalMethodButtons.forEach(button => {
+                    const method = button.dataset.method;
+                    // Reset classes for all buttons
+                    button.classList.remove(
+                        'bg-blue-700', 'border-blue-500', 'text-white', 'scale-105',
+                        'bg-yellow-700', 'border-yellow-500',
+                        'bg-green-700', 'border-green-500'
+                    );
+                    button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300', 'hover:bg-blue-900', 'hover:border-blue-700');
+
+
+                    if (method === selectedMethod) {
+                        // Apply specific classes for the selected button
+                        if (method === 'paypal') {
+                            button.classList.add('bg-blue-700', 'border-blue-500', 'text-white', 'scale-105');
+                            button.classList.remove('hover:bg-blue-900', 'hover:border-blue-700'); // Remove hover for selected
+                        } else if (method === 'crypto') {
+                            button.classList.add('bg-yellow-700', 'border-yellow-500', 'text-white', 'scale-105');
+                            button.classList.remove('hover:bg-blue-900', 'hover:border-blue-700');
+                        } else if (method === 'bank') {
+                            button.classList.add('bg-green-700', 'border-green-500', 'text-white', 'scale-105');
+                            button.classList.remove('hover:bg-blue-900', 'hover:border-blue-700');
+                        }
+                    }
+                });
+                withdrawalMethodHidden.value = selectedMethod;
+
+                // Update label and placeholder for details textarea
+                if (selectedMethod === 'paypal') {
+                    withdrawalAddressLabel.textContent = 'PayPal Email:';
+                    withdrawalAddressTextarea.placeholder = 'your-email@example.com';
+                } else if (selectedMethod === 'crypto') {
+                    withdrawalAddressLabel.textContent = 'Crypto Wallet Address (e.g., BTC, ETH, XRP, USDT):';
+                    withdrawalAddressTextarea.placeholder = '0xAbc...123 (ETH), 1A1zP... (BTC), etc.';
+                } else if (selectedMethod === 'bank') {
+                    withdrawalAddressLabel.textContent = 'Bank Account Details (Bank Name, Account No., Swift Code):';
+                    withdrawalAddressTextarea.placeholder = 'Bank Name: ABC Bank\nAccount Number: 123456789\nSwift Code: ABCDEFGH';
+                }
+            }
+
+            withdrawalMethodButtons.forEach(button => {
+                button.addEventListener('click', () => updateMethodSelection(button.dataset.method));
+            });
+
+            // Set initial selection based on saved data or default
+            updateMethodSelection(savedWithdrawalMethod || 'paypal');
+
+            document.getElementById('withdrawal-back-button').addEventListener('click', () => renderPage('dashboard'));
+            updateBalanceDisplay(); // Update current balance display
+            updateCooldownDisplay(); // Update auto withdrawal cooldown display
+        }
+
+        function renderPrivacyPage() {
+            const mainContent = document.getElementById('main-content');
+            // Hide loading message
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) loadingMessage.classList.add('hidden');
+
+            mainContent.innerHTML = `
+                <div class="p-6 bg-gray-800 rounded-lg shadow-2xl border border-gray-700 text-gray-100">
+                    <h2 class="text-3xl font-extrabold text-gray-100 mb-6 text-center font-heading">Ad Privacy Policy</h2>
+                    <div class="prose max-w-none text-gray-300">
+                        <p>Welcome to our Ad Privacy Policy page. Your privacy is of utmost importance to us. This policy outlines how we handle information related to the advertisements displayed on our platform.</p>
+                        <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-200 font-heading">1. Ad Content and Third-Party Links</h3>
+                        <p>Our platform displays advertisements from third-party ad networks. The content of these ads is controlled by the respective ad networks. When you click on an ad, you will be redirected to the advertiser's website, which is outside of our control. We are not responsible for the privacy practices or the content of these third-party websites. We encourage you to review the privacy policies of any website you visit.</p>
+                        <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-200 font-heading">2. Data Collection</h3>
+                        <p>We do not directly collect personal identifying information from you when you watch ads on our platform. Your interaction with ads (e.g., clicking, viewing duration) is tracked solely for the purpose of crediting your account balance within our system. This tracking is internal and not shared with third parties in a personally identifiable way.</p>
+                        <p>For the purpose of maintaining your balance and ad-watching progress across sessions, we use your browser's local storage. This data is stored on your device and is not transmitted to our servers.</p>
+                        <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-200 font-heading">3. Cookies and Tracking Technologies</h3>
+                        <p>The third-party ad networks may use cookies and other tracking technologies (like web beacons) to collect information about your browsing activity across different websites to serve you personalized ads. This is standard practice for online advertising. We do not control these third-party cookies. You can typically manage your cookie preferences through your browser settings.</p>
+                        <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-200 font-heading">4. Your Choices</h3>
+                        <p>You have the option to watch ads or not. If you do not wish for third-party ad networks to collect information about your interests for advertising purposes, you should adjust your browser settings or use ad-blocking software. Please note that using ad-blocking software may affect your ability to earn rewards on our platform.</p>
+                        <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-200 font-heading">5. Changes to This Policy</h3>
+                        <p>We may update our Ad Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page. You are advised to review this policy periodically for any changes.</p>
+                        <p class="mt-8 text-sm text-gray-400">Last updated: July 10, 2025</p>
+                    </div>
+                    <button id="privacy-back-button" class="mt-8 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transform hover:scale-105 transition duration-300 block mx-auto border border-gray-500 font-heading">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Dashboard</span>
+                    </button>
+                </div>
+            `;
+            document.getElementById('privacy-back-button').addEventListener('click', () => renderPage('dashboard'));
+        }
+
+        function renderPage(page) {
+            console.log(`Attempting to render page: ${page}`);
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) {
+                loadingMessage.classList.add('hidden'); // Hide loading message as soon as renderPage is called
+            }
+
+            currentPage = page;
+            const navButtons = document.querySelectorAll('header nav button');
+            navButtons.forEach(button => {
+                // Remove all specific styling classes first
+                button.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'border', 'border-blue-500');
+                // Add default styling classes
+                button.classList.add('py-2', 'px-4', 'rounded-lg', 'font-semibold', 'transition', 'duration-300', 'text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
+
+                if (button.id === `nav-${page}`) {
+                    button.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'border', 'border-blue-500', 'active');
+                    button.classList.remove('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
+                } else {
+                    button.classList.remove('active'); // Ensure 'active' class is removed from non-selected buttons
+                }
+            });
+
+            // Hide/show header based on page
+            const appHeader = document.getElementById('app-header');
+            if (page === 'auth') {
+                appHeader.classList.add('hidden');
+            } else {
+                appHeader.classList.remove('hidden');
+            }
+
+            switch (page) {
+                case 'auth':
+                    renderAuthPage();
+                    break;
+                case 'dashboard':
+                    renderDashboardPage();
+                    break;
+                case 'watch-ads':
+                    renderWatchAdsPage();
+                    break;
+                case 'spin-roll':
+                    renderSpinRollPage();
+                    break;
+                case 'tasks': // New: Tasks page
+                    renderTasksPage();
+                    break;
+                case 'referral': // New: Referral page
+                    renderReferralPage();
+                    break;
+                case 'withdrawal':
+                    renderWithdrawalPage();
+                    break;
+                default: // Fallback to auth or dashboard if not recognized
+                    if (userId) {
+                        renderDashboardPage();
+                    } else {
+                        renderAuthPage();
+                    }
+                    break;
+            }
+            updateBalanceDisplay(); // Always update display after rendering page
+            updateCooldownDisplay(); // Always update cooldown display
+            console.log(`Page ${page} rendered.`);
+        }
+
+        // --- Background Canvas Animation Logic ---
+        let canvas, ctx, particles;
+        const numParticles = 100;
+        const particleSize = 2;
+        const particleSpeed = 0.5;
+
+        function initCanvas() {
+            canvas = document.getElementById('background-canvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            createParticles();
+            animateParticles();
+            console.log("Background canvas initialized.");
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function createParticles() {
+            particles = [];
+            for (let i = 0; i < numParticles; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * particleSize + 1,
+                    speedX: (Math.random() - 0.5) * particleSpeed,
+                    speedY: (Math.random() - 0.5) * particleSpeed,
+                    color: `rgba(0, 188, 212, ${Math.random() * 0.5 + 0.1})` // Cyan with varying opacity
+                });
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+
+                // Update position
+                p.x += p.speedX;
+                p.y += p.speedY;
+
+                // Wrap particles around the screen
+                if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+                // Draw particle
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            }
+
+            requestAnimationFrame(animateParticles);
+        }
+
+        // --- Three.js Coin Rain Effect ---
+        let coinScene, coinCamera, coinRenderer, coinParticles = [];
+        let coinRainActive = false;
+        // Increased coin size: radius 0.7, height 0.15 (from 0.5, 0.1)
+        const coinGeometry = new THREE.CylinderGeometry(0.7, 0.7, 0.15, 32);
+        const coinMaterialUSD = new THREE.MeshLambertMaterial({ color: 0xFFD700 }); // Gold color for USD
+        const coinMaterialUSDT = new THREE.MeshLambertMaterial({ color: 0xADD8E6 }); // LightBlue for USDT
+        const coinMaterialXRP = new THREE.MeshLambertMaterial({ color: 0x8A2BE2 }); // BlueViolet for XRP
+        const coinMaterialDefault = new THREE.MeshLambertMaterial({ color: 0xC0C0C0 }); // Default silver for others
+
+        // Define gravity and bounce factor globally
+        const gravity = -0.05; // Downward acceleration
+        const bounceFactor = -0.6; // How much velocity is retained on bounce
+        let floorY; // Will be calculated once coinCamera is initialized
+
+        function initCoinRainCanvas() {
+            const coinCanvas = document.getElementById('coin-rain-canvas');
+            coinScene = new THREE.Scene();
+            coinCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            coinRenderer = new THREE.WebGLRenderer({ canvas: coinCanvas, alpha: true, antialias: true }); // alpha: true for transparency
+            coinRenderer.setSize(window.innerWidth, window.innerHeight);
+            coinRenderer.setClearColor(0x000000, 0); // Transparent background
+
+            // Add ambient light
+            coinScene.add(new THREE.AmbientLight(0x404040));
+            // Add directional light for shadows and definition
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(0, 1, 1).normalize();
+            coinScene.add(directionalLight);
+
+            coinCamera.position.z = 50; // Adjust camera distance
+            floorY = - (coinCamera.position.z / 2) * 0.8; // Calculate floorY after camera is set
+
+            window.addEventListener('resize', onCoinRainWindowResize);
+            animateCoinRain();
+            console.log("Coin rain canvas initialized.");
+        }
+
+        function onCoinRainWindowResize() {
+            const coinCanvas = document.getElementById('coin-rain-canvas');
+            coinCamera.aspect = window.innerWidth / window.innerHeight;
+            coinCamera.updateProjectionMatrix();
+            coinRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Modified to accept currency type
+        function createCoinMesh(currencyType) {
+            let material;
+            switch (currencyType) {
+                case 'USD':
+                    material = coinMaterialUSD;
+                    break;
+                case 'USDT':
+                    material = coinMaterialUSDT;
+                    break;
+                case 'XRP':
+                    material = coinMaterialXRP;
+                    break;
+                // Add more cases for other cryptocurrencies if needed
+                default:
+                    material = coinMaterialDefault; // Default to silver for unspecified
+            }
+            const coin = new THREE.Mesh(coinGeometry, material);
+            // Increased scale for larger coins: 1.2 to 2.0 times the base geometry
+            coin.scale.set(Math.random() * 0.8 + 1.2, Math.random() * 0.8 + 1.2, 1);
+            return coin;
+        }
+
+        // Modified to accept currency type
+        function triggerCoinRain(amount, currencyType) {
+            // Add a check here to ensure coinCamera is initialized
+            if (!coinCamera || !coinCamera.position) {
+                console.warn("Coin rain not triggered: coinCamera not initialized.");
+                return;
+            }
+
+            const coinCanvas = document.getElementById('coin-rain-canvas');
+            coinCanvas.classList.remove('hidden');
+            coinRainActive = true;
+            coinParticles = []; // Clear existing coins
+
+            // Increased number of coins: amount * 15 (from amount * 5), max 200 (from 100)
+            const numCoins = Math.min(Math.floor(amount * 15), 200);
+
+            for (let i = 0; i < numCoins; i++) {
+                const coin = createCoinMesh(currencyType); // Pass currencyType
+                coin.position.x = (Math.random() - 0.5) * (coinCamera.aspect * coinCamera.position.z * 1.5); // Spread across screen width
+                coin.position.y = (Math.random() * 20) + (coinCamera.position.z / 2); // Start above screen, varied height
+                coin.position.z = (Math.random() - 0.5) * 10; // Z-depth for perspective
+
+                coin.rotation.x = Math.random() * Math.PI * 2;
+                coin.rotation.y = Math.random() * Math.PI * 2;
+                coin.rotation.z = Math.random() * Math.PI * 2;
+
+                coinScene.add(coin);
+                coinParticles.push({
+                    mesh: coin,
+                    velocity: new THREE.Vector3( (Math.random() - 0.5) * 0.5, -0.5 - Math.random() * 0.5, (Math.random() - 0.5) * 0.2), // Random horizontal/depth velocity, downward
+                    rotationSpeed: new THREE.Vector3(Math.random() * 0.1, Math.random() * 0.1, Math.random() * 0.1),
+                    opacity: 1.0,
+                    fadeStartTime: 0 // Will be set when coin hits bottom
+                });
+            }
+        }
+
+        function animateCoinRain() {
+            requestAnimationFrame(animateCoinRain);
+
+            // Add a check here to ensure coinRenderer, coinScene, and coinCamera are initialized before rendering
+            if (!coinRenderer || !coinScene || !coinCamera) {
+                return;
+            }
+
+            if (!coinRainActive && coinParticles.length === 0) {
+                return; // Only animate if there are coins or rain is active
+            }
+
+            const coinsToRemove = [];
+            coinParticles.forEach((p, index) => {
+                // Defensive check: Ensure mesh and its position exist
+                if (!p || !p.mesh || !p.mesh.position || !p.velocity || !p.rotationSpeed) {
+                    console.warn("Skipping coin particle due to missing properties:", p);
+                    coinsToRemove.push(index);
+                    return; // Skip this iteration
+                }
+
+                // Apply gravity
+                p.velocity.y += gravity;
+                p.mesh.position.add(p.velocity);
+
+                // Apply rotation
+                p.mesh.rotation.x += p.rotationSpeed.x;
+                p.mesh.rotation.y += p.rotationSpeed.y;
+                p.mesh.rotation.z += p.rotationSpeed.z;
+
+                // Simple floor collision and bounce
+                if (p.mesh.position.y < floorY) {
+                    p.mesh.position.y = floorY; // Snap to floor
+                    p.velocity.y *= bounceFactor; // Reverse and reduce vertical velocity
+                    p.velocity.x *= 0.8; // Reduce horizontal velocity
+                    p.velocity.z *= 0.8; // Reduce depth velocity
+                    p.rotationSpeed.multiplyScalar(0.5); // Reduce rotation speed
+                    if (Math.abs(p.velocity.y) < 0.1 && Math.abs(p.velocity.x) < 0.1 && Math.abs(p.velocity.z) < 0.1) {
+                        // If coin has almost stopped, start fading
+                        if (p.fadeStartTime === 0) {
+                            p.fadeStartTime = Date.now();
+                        }
+                    }
+                }
+
+                // Fade out and remove
+                if (p.fadeStartTime > 0) {
+                    const fadeDuration = 1000; // 1 second fade
+                    const fadeProgress = (Date.now() - p.fadeStartTime) / fadeDuration;
+                    p.opacity = Math.max(0, 1 - fadeProgress);
+                    if (p.mesh.material.opacity !== undefined) { // Check if material supports opacity
+                        p.mesh.material.opacity = p.opacity;
+                        p.mesh.material.transparent = true; // Enable transparency
+                    }
+                    if (p.opacity <= 0) {
+                        coinsToRemove.push(index);
+                    }
+                }
+            });
+
+            // Remove coins that have faded out
+            for (let i = coinsToRemove.length - 1; i >= 0; i--) {
+                const index = coinsToRemove[i];
+                // Ensure the mesh exists before trying to remove it from the scene and dispose
+                if (coinParticles[index] && coinParticles[index].mesh) {
+                    coinScene.remove(coinParticles[index].mesh);
+                    // Dispose of geometry and material to prevent memory leaks
+                    if (coinParticles[index].mesh.geometry) {
+                        coinParticles[index].mesh.geometry.dispose();
+                    }
+                    if (coinParticles[index].mesh.material) {
+                        // If material is an array (e.g., for multi-material objects), iterate and dispose
+                        if (Array.isArray(coinParticles[index].mesh.material)) {
+                            coinParticles[index].mesh.material.forEach(m => m.dispose());
+                        } else {
+                            coinParticles[index].mesh.material.dispose();
+                        }
+                    }
+                }
+                coinParticles.splice(index, 1);
+            }
+
+            // If all coins are gone, hide the canvas
+            if (coinParticles.length === 0 && coinRainActive) {
+                document.getElementById('coin-rain-canvas').classList.add('hidden');
+                coinRainActive = false;
+            }
+
+            coinRenderer.render(coinScene, coinCamera);
+        }
+
+
+        // Function to parse URL for referral code
+        function getReferralCodeFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('ref');
+        }
+
+        // --- Initialize App ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOM Content Loaded. Starting app initialization.");
+            // Initialize Firebase with your specific details
+            // Use global __firebase_config if available, otherwise use placeholders
+            let firebaseConfig;
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                try {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                    console.log("Firebase config loaded from __firebase_config.");
+                } catch (e) {
+                    console.error("Error parsing __firebase_config:", e);
+                    // Fallback to placeholder if parsing fails
+                    firebaseConfig = {
+                        apiKey: "AIzaSyDaAMcSZSigXawYiD7ThoB-kXMdoa9cgyY", // Replace with your actual Firebase API Key
+                        authDomain: "adwatchrewardsapp.firebaseapp.com", // Replace with your actual Firebase Auth Domain
+                        projectId: "adwatchrewardsapp", // Replace with your actual Firebase Project ID
+                        storageBucket: "adwatchrewardsapp.firebasestorage.app", // Replace with your actual Firebase Storage Bucket
+                        messagingSenderId: "782268735936", // Replace with your actual Firebase Messaging Sender ID
+                        appId: "1:782268735936:web:ea82e5be5d0f44949ba825", // Replace with your actual Firebase App ID
+                        measurementId: "G-4NG2564HTK" // Replace with your actual Firebase Measurement ID
+                    };
+                    console.warn("Using placeholder Firebase config. PLEASE UPDATE THIS IN YOUR DEPLOYED CODE!");
+                }
+            } else {
+                firebaseConfig = {
+                    apiKey: "AIzaSyDaAMcSZSigXawYiD7ThoB-kXMdoa9cgyY", // Replace with your actual Firebase API Key
+                    authDomain: "adwatchrewardsapp.firebaseapp.com", // Replace with your actual Firebase Auth Domain
+                    projectId: "adwatchrewardsapp", // Replace with your actual Firebase Project ID
+                    storageBucket: "adwatchrewardsapp.firebasestorage.app", // Replace with your actual Firebase Storage Bucket
+                    messagingSenderId: "782268735936", // Replace with your actual Firebase Messaging Sender ID
+                    appId: "1:782268735936:web:ea82e5be5d0f44949ba825", // Replace with your actual Firebase App ID
+                    measurementId: "G-4NG2564HTK" // Replace with your actual Firebase Measurement ID
+                };
+                console.warn("No __firebase_config found. Using placeholder Firebase config. PLEASE UPDATE THIS IN YOUR DEPLOYED CODE!");
+            }
+
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                console.log("Firebase initialized successfully.");
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                showAlert("Initialization Error", `Failed to connect to Firebase. Error: ${error.message}. Please check your console for details.`, "error");
+                // Attempt to render auth page even if Firebase init fails, so user isn't stuck on "Loading..."
+                renderPage('auth');
+                return; // Stop further execution if Firebase fails to initialize
+            }
+
+            // Initial authentication check using __initial_auth_token
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null && __initial_auth_token !== '') {
+                try {
+                    console.log("Attempting sign-in with custom token.");
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    console.log("Signed in with custom token.");
+                } catch (error) {
+                    console.error("Error signing in with custom token, falling back to anonymous:", error);
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously after custom token failure.");
+                }
+            } else {
+                console.log("No custom token found, signing in anonymously.");
+                await signInAnonymously(auth);
+                console.log("Signed in anonymously.");
+            }
+
+            initCanvas(); // Initialize background canvas animation
+            initCoinRainCanvas(); // Initialize 3D coin rain canvas
+
+            // Check for referral code in URL immediately on load
+            activeReferralCode = getReferralCodeFromUrl();
+
+            // Set up Auth state listener (this will now react to the initial sign-in above)
+            onAuthStateChanged(auth, async (user) => {
+                console.log("Auth state changed. User:", user ? user.uid : "null");
+                try {
+                    if (user) {
+                        userId = user.uid;
+                        // Listen for real-time updates to user data
+                        const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+                        onSnapshot(userDocRef, (docSnap) => {
+                            console.log("User data snapshot received.");
+                            if (docSnap.exists()) {
+                                const data = docSnap.data();
+                                console.log("User data:", data);
+                                // Only update balance if it's different to trigger animation
+                                if (balance !== data.balance) {
+                                    displayedBalance = balance; // Set starting point for animation
+                                    balance = data.balance || 0;
+                                } else {
+                                    balance = data.balance || 0;
+                                    displayedBalance = balance; // If no change, keep displayed and actual in sync
+                                }
+
+                                adsWatched = data.adsWatched || 0;
+                                cooldownEndTime = data.cooldownEndTime || 0;
+                                spinCooldownEndTime = data.spinCooldownEndTime || 0;
+                                tasksCompleted = data.tasksCompleted || 0;
+                                taskCooldownEndTime = data.taskCooldownEndTime || 0;
+                                referralCode = data.referralCode || '';
+                                totalReferrals = data.totalReferrals || 0;
+                                referralEarnings = data.referralEarnings || 0;
+                                unclaimedReferralBalance = data.unclaimedReferralBalance || 0; // Load unclaimed balance
+                                savedWithdrawalMethod = data.withdrawalMethod || null; // Load saved method
+                                savedWithdrawalAddress = data.withdrawalAddress || null; // Load saved address
+                                lastAutomaticWithdrawalTime = data.lastAutomaticWithdrawalTime || 0; // Load last auto withdrawal time
+                                
+                                isAuthReady = true; // Data loaded
+                                renderPage('dashboard'); // Render dashboard after data is loaded
+                                checkAndProcessAutomaticWithdrawal(); // Check for auto withdrawal
+                            } else {
+                                // User exists but no profile data (e.g., new anonymous user or new email/password user)
+                                console.warn("User profile not found for existing user:", userId, "Attempting to create default profile.");
+                                const newReferralCode = generateReferralCode(userId);
+                                createOrUpdateUserProfile(userId, {
+                                    balance: 0,
+                                    adsWatched: 0,
+                                    cooldownEndTime: 0,
+                                    spinCooldownEndTime: 0,
+                                    tasksCompleted: 0,
+                                    taskCooldownEndTime: 0,
+                                    referralCode: newReferralCode,
+                                    totalReferrals: 0,
+                                    referralEarnings: 0,
+                                    unclaimedReferralBalance: 0, // Initialize
+                                    referredBy: null,
+                                    withdrawalMethod: null, // Initialize
+                                    withdrawalAddress: null, // Initialize
+                                    lastAutomaticWithdrawalTime: 0, // Initialize
+                                    createdAt: Date.now()
+                                }).then(() => {
+                                    isAuthReady = true;
+                                    renderPage('dashboard');
+                                    console.log("Default profile created and dashboard rendered.");
+                                }).catch(error => {
+                                    console.error("Error creating default profile for existing user:", error);
+                                    showAlert("Error", `Failed to initialize user profile. Error: ${error.message}`, "error");
+                                    isAuthReady = true;
+                                    renderPage('auth');
+                                });
+                            }
+                        }, (error) => {
+                            console.error("Error listening to user data:", error);
+                            showAlert("Data Sync Error", `Failed to load user data in real-time. Error: ${error.message}`, "error");
+                            isAuthReady = true; // Still mark as ready
+                            renderPage('auth'); // Fallback to auth
+                        });
+                    } else {
+                        // No user is signed in.
+                        userId = null;
+                        isAuthReady = true; // Auth state checked
+                        renderPage('auth');
+                        console.log("No user signed in, rendering auth page.");
+                    }
+                } catch (authError) {
+                    console.error("Error in onAuthStateChanged callback:", authError);
+                    showAlert("Authentication Error", `An error occurred during authentication. Error: ${authError.message}`, "error");
+                    isAuthReady = true;
+                    renderPage('auth'); // Ensure auth page is rendered even on auth listener error
+                }
+            });
+
+            // Setup navigation button listeners (these are static elements)
+            document.getElementById('nav-dashboard').addEventListener('click', () => renderPage('dashboard'));
+            document.getElementById('nav-watch-ads').addEventListener('click', () => renderPage('watch-ads'));
+            document.getElementById('nav-spin-roll').addEventListener('click', () => renderPage('spin-roll'));
+            document.getElementById('nav-tasks').addEventListener('click', () => renderPage('tasks'));
+            document.getElementById('nav-referral').addEventListener('click', () => renderPage('referral'));
+            document.getElementById('nav-withdrawal').addEventListener('click', () => renderPage('withdrawal'));
+            document.getElementById('nav-privacy').addEventListener('click', () => renderPage('privacy'));
+            document.getElementById('nav-logout').addEventListener('click', logoutUser);
+
+            // Setup popup close buttons (these are static elements)
+            document.getElementById('close-ad-completion-popup').addEventListener('click', () => {
+                document.getElementById('ad-completion-popup').classList.add('hidden');
+            });
+            document.getElementById('close-task-completion-popup').addEventListener('click', () => {
+                document.getElementById('task-completion-popup').classList.add('hidden');
+            });
+            document.getElementById('close-withdrawal-popup').addEventListener('click', () => {
+                document.getElementById('withdrawal-confirmation-popup').classList.add('hidden');
+            });
+
+            // Referral Claim Popup Buttons
+            document.getElementById('claim-invitation-button').addEventListener('click', () => {
+                // This button is clicked when a user is already on the auth page,
+                // and has just seen the referral popup.
+                // The actual claiming happens when they create an account or log in as guest.
+                // For now, just close the popup and let them proceed with auth.
+                document.getElementById('referral-claim-popup').classList.add('hidden');
+                showAlert("Ready to Claim", "Please create an account or log in to claim your bonus!", "info");
+            });
+            document.getElementById('close-referral-claim-popup').addEventListener('click', () => {
+                activeReferralCode = null; // Discard the referral if user closes popup
+                window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+                document.getElementById('referral-claim-popup').classList.add('hidden');
+            });
+
+
+            // Start notification generators
+            setInterval(() => {
+                notificationQueueRight.push(generateRightNotification());
+                if (document.getElementById('live-notification-right').classList.contains('hidden')) {
+                    showRightNotification();
+                }
+            }, Math.random() * (15000 - 5000) + 5000); // Generate every 5-15 seconds
+
+            setInterval(() => {
+                notificationQueueLeft.push(generateLeftNotification());
+                if (document.getElementById('live-notification-left').classList.contains('hidden')) {
+                    showLeftNotification();
+                }
+            }, Math.random() * (20000 - 10000) + 10000); // Generate every 10-20 seconds
+
+            // Update cooldown display every second if cooldown is active
+            setInterval(() => {
+                if (isAuthReady && (cooldownEndTime > Date.now() || spinCooldownEndTime > Date.now() || taskCooldownEndTime > Date.now() || referralCooldownEndTime > Date.now() || (lastAutomaticWithdrawalTime + AUTO_WITHDRAWAL_COOLDOWN_MS > Date.now()))) {
+                    updateCooldownDisplay();
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
